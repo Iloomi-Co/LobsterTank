@@ -1,0 +1,61 @@
+{
+  "description": "Centralized model routing configuration. Defines which model to use for each task type.",
+  "default_model": "sonnet-4.6",
+  "routing": {
+    "conversation": {
+      "model": "sonnet-4.6",
+      "provider": "anthropic",
+      "notes": "Default for conversational responses and task execution"
+    },
+    "coding": {
+      "model": "sonnet-4.6",
+      "provider": "anthropic",
+      "notes": "Code generation, debugging, investigation"
+    },
+    "analysis": {
+      "model": "opus-4.6",
+      "provider": "anthropic",
+      "notes": "Complex analysis, strategy, important drafts"
+    },
+    "security_scan": {
+      "model": "opus-4.6",
+      "provider": "anthropic",
+      "notes": "Frontier scanner for prompt injection defense. Uses direct provider path, isolated from agent context."
+    },
+    "classification": {
+      "model": "haiku-4.6",
+      "provider": "anthropic",
+      "notes": "Email classification, labeling, quick lookups"
+    },
+    "embeddings": {
+      "model": "nomic-embed-text",
+      "provider": "local",
+      "notes": "Local embeddings for knowledge base, CRM, and search. Zero API cost."
+    },
+    "council": {
+      "model": "opus-4.6",
+      "provider": "anthropic",
+      "notes": "Nightly councils (security, platform health, innovation)"
+    },
+    "cron_routine": {
+      "model": "sonnet-4.6",
+      "provider": "anthropic",
+      "notes": "Routine cron jobs (email polling, calendar checks, status reports)"
+    },
+    "draft_review": {
+      "model": "opus-4.6",
+      "provider": "anthropic",
+      "notes": "Reviewer LLM for outbound email safety validation"
+    }
+  },
+  "fallback_chain": [
+    "anthropic/sonnet-4.6",
+    "anthropic/opus-4.6",
+    "openai/gpt-5.2"
+  ],
+  "cost_notes": {
+    "strategy": "Use the cheapest capable model for each task. Frontier models (Opus) reserved for analysis, security, and councils.",
+    "quota_aware": "Spread heavy jobs overnight (1-5 AM user timezone). Light jobs during business hours.",
+    "caching": "Prompt caching enabled by default for repeated system prompts."
+  }
+}

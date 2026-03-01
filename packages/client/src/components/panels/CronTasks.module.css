@@ -1,0 +1,51 @@
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.jobCard {
+  padding: 10px 12px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.schedule {
+  font-size: var(--font-size-sm);
+  color: var(--text-accent);
+  font-weight: 500;
+}
+
+.command {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  word-break: break-all;
+}
+
+.tags {
+  display: flex;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.logBtn {
+  padding: 4px 10px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  transition: all var(--transition-fast);
+}
+
+.logBtn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.logSection {
+  margin-top: 12px;
+}

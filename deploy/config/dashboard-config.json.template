@@ -1,0 +1,51 @@
+{
+  "version": "1.0",
+  "description": "LobsterTank dashboard configuration. Copy to ~/.openclaw/dashboard-config.json and customize.",
+  "dashboard": {
+    "port": 3333,
+    "refreshIntervalSeconds": 30,
+    "theme": "dark",
+    "defaultView": "all"
+  },
+  "alerts": {
+    "spendRateAlertPerHour": 1.00,
+    "dailySpendWarnAt": 3.00,
+    "dailySpendPauseAt": 10.00,
+    "sessionTokenWarning": 50000,
+    "sessionAgeWarningHours": 24
+  },
+  "expectedServices": {
+    "launchd": ["ai.openclaw.gateway"],
+    "processes": ["openclaw-gateway", "ollama"]
+  },
+  "modelPolicy": {
+    "_comment": "Per-instance, per-agent allowed models. If a model appears in usage that isn't listed here, the dashboard alerts.",
+    "personal": {
+      "bee-email-poller": {
+        "allowed": ["ollama/qwen3:14b"],
+        "alertOn": ["anthropic/*"]
+      },
+      "bee-email-processor": {
+        "allowed": ["anthropic/claude-haiku-4-5", "anthropic/claude-sonnet-4-5"],
+        "alertOn": ["anthropic/claude-opus-4-5"]
+      }
+    }
+  },
+  "balanceHistory": [],
+  "syncConfig": {
+    "rulesFile": "openclaw-deploy/config/agents-rules.json",
+    "manifestFile": "openclaw-deploy/config/sync-manifest.json",
+    "syncScript": "openclaw-deploy/scripts/sync-rules.sh"
+  },
+  "slack": {
+    "webhookUrl": "",
+    "channels": {
+      "alerts": "#openclaw-alerts",
+      "audits": "#openclaw-audits"
+    }
+  },
+  "logging": {
+    "dashboardActions": "~/.openclaw/logs/dashboard-actions.log",
+    "syncOperations": "~/.openclaw/logs/sync-operations.log"
+  }
+}

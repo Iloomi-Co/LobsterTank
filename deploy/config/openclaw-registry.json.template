@@ -1,0 +1,38 @@
+{
+  "version": "1.0",
+  "description": "Instance registry — source of truth for all OC installations. LobsterTank reads this on startup. Every instance must be registered here.",
+  "createdAt": "YYYY-MM-DD",
+  "lastUpdated": "YYYY-MM-DD",
+  "instances": {
+    "personal": {
+      "path": "~/.openclaw",
+      "port": 19000,
+      "purpose": "Personal orchestration, general use",
+      "apiKeyLabel": "troy-personal",
+      "enabled": true,
+      "autoStart": true,
+      "slackWebhook": ""
+    },
+    "bzzr": {
+      "path": "~/.openclaw-bzzr",
+      "port": 19001,
+      "purpose": "BZZR team agent infrastructure",
+      "apiKeyLabel": "bzzr-production",
+      "enabled": true,
+      "autoStart": true,
+      "slackWebhook": ""
+    }
+  },
+  "_notes": {
+    "portRange": "19000-19099, assigned sequentially",
+    "pathConvention": "~/.openclaw-{projectname} (personal is just ~/.openclaw)",
+    "newInstanceSteps": [
+      "1. Create directory: mkdir -p ~/.openclaw-{project}",
+      "2. Initialize OC config (openclaw.json, agents, auth-profiles)",
+      "3. Add entry to this registry file",
+      "4. Start gateway: openclaw gateway (from instance directory)",
+      "5. Create wrapper scripts in ~/bin/",
+      "6. Add crontab entries for automation"
+    ]
+  }
+}

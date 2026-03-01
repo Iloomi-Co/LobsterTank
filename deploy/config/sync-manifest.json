@@ -1,0 +1,28 @@
+{
+  "version": "1.3",
+  "description": "Maps canonical rule blocks from agents-rules.json to target AGENTS.md files. Used by sync-rules.sh to detect drift and apply fixes. Paths use ~ which the script expands to $HOME.",
+  "lastUpdated": "2026-03-01",
+  "targets": [
+    {
+      "workspace": "chief",
+      "agentName": "Chief",
+      "path": "~/.openclaw/workspace/AGENTS.md",
+      "requiredRules": ["scheduling-rules", "log-locations", "cost-monitoring", "troubleshooting-flow", "heartbeat-rules"],
+      "preserveSections": ["Memory System", "Security & Safety", "Data Classification", "Scope Discipline", "Workspace Organization", "Writing Style", "Task Execution & Model Strategy", "Message Consolidation", "Time Display", "Group Chat Protocol", "Tools", "Automated Workflows", "Cron Job Standards", "Notification Queue", "Heartbeats", "Cron-Owned Content", "Error Reporting", "See Also"]
+    },
+    {
+      "workspace": "beehive",
+      "agentName": "Bee Hive (BZZR)",
+      "path": "~/.openclaw/workspace-beehive/AGENTS.md",
+      "requiredRules": ["scheduling-rules", "log-locations", "cost-monitoring", "troubleshooting-flow", "heartbeat-rules"],
+      "preserveSections": ["all"]
+    }
+  ],
+  "syncBehavior": {
+    "backupBeforeSync": true,
+    "backupSuffix": ".bak",
+    "insertStrategy": "append-before-see-also",
+    "logTo": "~/.openclaw/logs/sync-operations.log",
+    "dryRunByDefault": true
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "version": "1.0",
+  "description": "Canonical rule blocks that MUST exist in every agent AGENTS.md file. Used by sync-rules.sh and LobsterTank to detect and fix config drift.",
+  "lastUpdated": "2026-03-01",
+  "ruleBlocks": [
+    {
+      "id": "scheduling-rules",
+      "title": "Scheduling Rules (MANDATORY)",
+      "description": "Crontab-only scheduling with explicit prohibited actions. Prevents rogue launchd/internal cron creation.",
+      "insertAfter": "Cron Job Standards",
+      "content": "## Scheduling Rules (MANDATORY)\n\nAll recurring tasks are managed EXCLUSIVELY through the system crontab.\n- To see what's scheduled: run `crontab -l`\n- To add a new schedule: generate a wrapper script + crontab entry\n- To diagnose why something isn't running: run `crontab -l` and check the wrapper log\n\nPROHIBITED ACTIONS:\n- NEVER create launchd plist files (~/Library/LaunchAgents/)\n- NEVER use `openclaw cron add` or `openclaw cron` commands\n- NEVER register agents as launchd services\n- NEVER call `launchctl load` or `launchctl submit`\n\nIf you are tempted to create a launchd service or internal cron to fix\na scheduling issue, STOP. The correct fix is always to check and update\nthe crontab and/or the wrapper script it references.\n\n### Before Creating Any Scheduled Task\n\nALWAYS check for blocked service notices:\n1. Run: `ls ~/.openclaw/ROGUE_SERVICE_BLOCKED.md 2>/dev/null`\n2. If this file exists, READ IT before proceeding\n3. It means a previous attempt to create a launchd service was blocked\n4. Follow the instructions in the file (use crontab instead)\n\nThis file is created by the rogue-watchdog when unauthorized services\nare detected. Its existence means you MUST use crontab, not launchd.",
+      "validation": {
+        "mustContain": ["crontab", "PROHIBITED", "launchd", "NEVER", "ROGUE_SERVICE_BLOCKED.md"],
+        "mustNotContain": ["launchctl load", "openclaw cron add"]
+      }
+    },
+    {
+      "id": "log-locations",
+      "title": "Log Locations",
+      "description": "Where all automation logs live. Agents must check logs before taking corrective action.",
+      "insertAfter": "Scheduling Rules (MANDATORY)",
+      "content": "## Log Locations\n\nAll automation logs are in ~/.openclaw/logs/. When diagnosing issues:\n- Email wrapper: `tail -50 ~/.openclaw/logs/wrapper.log`\n- Per-project: `tail -50 ~/.openclaw/logs/<project>-<tool>.log`\n- Audit: `tail -50 ~/.openclaw/logs/audit.log`\n- Dashboard actions: `tail -50 ~/.openclaw/logs/dashboard-actions.log`\n\nAlways check logs BEFORE taking any corrective action.",
+      "validation": {
+        "mustContain": ["~/.openclaw/logs/", "wrapper.log", "audit.log", "BEFORE taking"]
+      }
+    },
+    {
+      "id": "cost-monitoring",
+      "title": "Cost Monitoring",
+      "description": "How agents should check and report on token spend.",
+      "insertAfter": "Log Locations",
+      "content": "## Cost Monitoring\n\n- Gateway spend: `openclaw gateway usage-cost --days 1 --json`\n- Note: CLI agent calls (cron wrappers) bypass the gateway and won't appear here\n- To check for model fallback issues: `grep -i \"falling back\\|sonnet\\|opus\" ~/.openclaw/logs/wrapper.log`\n- For total spend, ask the user for their current Anthropic console balance\n- NEVER assume spend is fine. If the user reports unexpected costs, check ALL logs.",
+      "validation": {
+        "mustContain": ["usage-cost", "bypass the gateway", "falling back", "Anthropic console"]
+      }
+    },
+    {
+      "id": "troubleshooting-flow",
+      "title": "Troubleshooting Flow",
+      "description": "Deterministic diagnostic sequence for 'why isn't X working?' questions.",
+      "insertAfter": "Cost Monitoring",
+      "content": "## Troubleshooting Flow\n\nWhen a user asks \"why isn't X working?\" or \"why didn't I get my email summary?\", follow this sequence IN ORDER:\n\n1. **Check the crontab**: Run `crontab -l`. Is there an entry for this task? If no, that's the problem.\n2. **Check the wrapper script**: Does the script exist? Is it executable? Run `ls -la ~/bin/<wrapper>.sh`\n3. **Check the wrapper log**: Run `tail -20 ~/.openclaw/logs/<wrapper>.log`. Did it run? Any errors?\n4. **Check if paused**: Run `ls ~/.openclaw/.cron-paused ~/.openclaw/.pause-<project> 2>/dev/null`\n5. **Check if local model is loaded**: Run `ollama ps`. If the wrapper needs a local model and it's not loaded, that's the problem.\n6. **Check the gateway**: Run `lsof -i :19000 -P -n`. Is the gateway running?\n\nNEVER SKIP TO: \"I'll create a new scheduling mechanism to fix this.\"\nALWAYS START AT: \"Let me check what's in the crontab.\"",
+      "validation": {
+        "mustContain": ["crontab -l", "wrapper log", "ollama ps", "NEVER SKIP", "ALWAYS START"]
+      }
+    },
+    {
+      "id": "heartbeat-rules",
+      "title": "Heartbeat & Scheduling Boundaries",
+      "description": "Prevents agents from self-scheduling tasks by reading the clock. HEARTBEAT.md is a reference doc, not an instruction sheet.",
+      "insertAfter": "Troubleshooting Flow",
+      "content": "## Heartbeat & Scheduling Boundaries\n\nHEARTBEAT.md is a **reference document**, not an instruction sheet. It describes what automation exists and where to find it.\n\n### What you MUST NOT do:\n- Do NOT read the clock and decide to perform time-based actions (send emails, compile reports, run audits)\n- Do NOT treat polling schedule tables as instructions to self-schedule\n- Do NOT initiate portfolio status emails, daily summaries, or any recurring task on your own\n- Do NOT interpret \"6:00 AM MT\" in any document as \"I should do this at 6 AM\"\n\n### What triggers recurring tasks:\n- **Crontab entries** trigger wrapper scripts at the right times\n- **Wrapper scripts** spawn agents with explicit messages like \"compile and send portfolio status now\"\n- **You** only act when spawned with a specific instruction from a wrapper\n\n### If a recurring task is not happening:\nThe fix is in the crontab or wrapper script, NOT in you deciding to do it manually.\nFollow the Troubleshooting Flow above (start with `crontab -l`).\n\nThe ONLY actions you should take on your own initiative are:\n1. Responding to direct user messages (Slack, email)\n2. Tasks explicitly listed in the message that spawned your current session",
+      "validation": {
+        "mustContain": ["reference document", "MUST NOT", "read the clock", "crontab entries", "wrapper scripts", "Troubleshooting Flow"]
+      }
+    }
+  ]
+}

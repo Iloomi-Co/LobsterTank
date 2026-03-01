@@ -1,0 +1,314 @@
+.entryPoint {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 32px 16px;
+}
+
+.description {
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  text-align: center;
+  max-width: 480px;
+  line-height: 1.7;
+}
+
+.auditBtn {
+  padding: 10px 24px;
+  background: var(--blue);
+  color: var(--bg-primary);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  transition: opacity var(--transition-fast);
+}
+
+.auditBtn:hover {
+  opacity: 0.9;
+}
+
+.auditBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.target {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.toast {
+  padding: 8px 12px;
+  background: var(--green-dim);
+  color: var(--green);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+}
+
+/* Change Plan */
+.planSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.planHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  border: 1px solid var(--border-primary);
+  border-bottom: none;
+}
+
+.planTitle {
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+}
+
+.planActions {
+  display: flex;
+  gap: 8px;
+}
+
+.copyBtn {
+  padding: 4px 12px;
+  background: var(--bg-active);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  color: var(--text-accent);
+  transition: all var(--transition-fast);
+}
+
+.copyBtn:hover {
+  background: var(--blue-dim);
+}
+
+.planText {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-primary);
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  padding: 16px;
+  font-size: var(--font-size-xs);
+  line-height: 1.6;
+  overflow-x: auto;
+  max-height: 400px;
+  overflow-y: auto;
+  white-space: pre;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+/* Category toggles */
+.categories {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sectionTitle {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.checkboxGroup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.checkbox input[type="checkbox"] {
+  accent-color: var(--blue);
+}
+
+/* Action buttons */
+.actionBar {
+  display: flex;
+  gap: 8px;
+}
+
+.applyBtn {
+  padding: 8px 20px;
+  background: var(--green);
+  color: var(--bg-primary);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  transition: opacity var(--transition-fast);
+}
+
+.applyBtn:hover {
+  opacity: 0.9;
+}
+
+.applyBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.rerunBtn {
+  padding: 8px 16px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  transition: all var(--transition-fast);
+}
+
+.rerunBtn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.rerunBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Detail sections */
+.detailSection {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.detailToggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  background: var(--bg-tertiary);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  text-align: left;
+  transition: background var(--transition-fast);
+}
+
+.detailToggle:hover {
+  background: var(--bg-hover);
+}
+
+.detailContent {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Config sync detail */
+.wsRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 0;
+}
+
+.wsName {
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+  min-width: 120px;
+  font-weight: 500;
+}
+
+.ruleChecks {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+/* Script detail table */
+.statusTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-xs);
+}
+
+.statusTable th {
+  text-align: left;
+  padding: 6px 10px;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-subtle);
+  font-weight: 500;
+}
+
+.statusTable td {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+}
+
+.scriptName {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+/* Crontab detail */
+.cronEntry {
+  display: flex;
+  gap: 12px;
+  padding: 4px 0;
+  font-size: var(--font-size-xs);
+}
+
+.cronSchedule {
+  color: var(--text-accent);
+  min-width: 100px;
+  font-weight: 500;
+}
+
+.cronCommand {
+  color: var(--text-secondary);
+  word-break: break-all;
+}
+
+.cronNew {
+  background: var(--green-dim);
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+}
+
+.cronLabel {
+  color: var(--green);
+  font-weight: 600;
+  min-width: 50px;
+}
+
+.warning {
+  padding: 6px 10px;
+  background: var(--red-dim);
+  color: var(--red);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+}
+
+/* Issues */
+.issueRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}

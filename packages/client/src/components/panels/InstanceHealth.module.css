@@ -1,0 +1,63 @@
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.gatewayCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-md);
+}
+
+.gatewayHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.port {
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+}
+
+.pid {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+}
+
+.sectionTitle {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+}
+
+.agentsSection {
+  display: flex;
+  flex-direction: column;
+}
+
+.agentGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.agentCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-sm);
+}
+
+.agentName {
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+}
