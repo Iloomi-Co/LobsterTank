@@ -12,7 +12,7 @@ const STALE_THRESHOLD_MS = 2 * 60 * 60 * 1000; // 2 hours
 
 sessionRoutes.get("/", async (_req, res) => {
   try {
-    const workspaceDirs = ["workspace", "workspace-beehive", "workspace-bee-email-poller", "workspace-bee-email-processor"];
+    const workspaceDirs = ["workspace", "workspace-beehive"];
     const sessions: SessionInfo[] = [];
 
     for (const wsDir of workspaceDirs) {

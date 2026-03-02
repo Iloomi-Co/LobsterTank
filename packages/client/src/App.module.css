@@ -1,64 +1,53 @@
 .sidebar {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  align-items: center;
+  gap: 4px;
 }
 
-.sidebarSection {
+.navGroup {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  align-items: center;
+  gap: 4px;
 }
 
-.sidebarTitle {
-  font-size: var(--font-size-xs);
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  padding-bottom: 4px;
+.sidebarSpacer {
+  flex: 1;
 }
 
-.actionBtn {
-  padding: 8px 12px;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-primary);
+.iconBtn {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
   border-radius: var(--radius-sm);
   font-size: var(--font-size-sm);
-  color: var(--text-secondary);
-  text-align: left;
+  font-weight: var(--font-weight-bold);
+  color: var(--text-muted);
+  cursor: pointer;
   transition: all var(--transition-fast);
+  font-family: var(--font-mono);
 }
 
-.actionBtn:hover {
+.iconBtn:hover {
   background: var(--bg-hover);
   color: var(--text-primary);
 }
 
+.iconBtnActive {
+  background: var(--accent-primary-dim);
+  color: var(--text-accent);
+}
+
 .dangerBtn {
-  border-color: var(--red);
   color: var(--red);
 }
 
 .dangerBtn:hover {
   background: var(--red-dim);
-}
-
-.shortcut {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: var(--font-size-xs);
-  color: var(--text-muted);
-}
-
-.key {
-  display: inline-block;
-  padding: 2px 6px;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-primary);
-  border-radius: 3px;
-  font-size: var(--font-size-xs);
-  color: var(--text-secondary);
-  min-width: 22px;
-  text-align: center;
+  color: var(--red);
 }

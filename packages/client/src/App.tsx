@@ -4,7 +4,6 @@ import { TopBar, type ViewType } from "./components/layout/TopBar.js";
 import { useTheme } from "./hooks/useTheme.js";
 import { InstanceHealth } from "./components/panels/InstanceHealth.js";
 import { ProcessMonitor } from "./components/panels/ProcessMonitor.js";
-import { SpendMonitor } from "./components/panels/SpendMonitor.js";
 import { ActiveSessions } from "./components/panels/ActiveSessions.js";
 import { AgentConfig } from "./components/panels/AgentConfig.js";
 import { OllamaModels } from "./components/panels/OllamaModels.js";
@@ -12,6 +11,7 @@ import { AuditPanel } from "./components/panels/AuditPanel.js";
 import { GitPanel } from "./components/panels/GitPanel.js";
 import { TaskScheduler } from "./components/scheduler/TaskScheduler.js";
 import { DeterminismAudit } from "./components/determinism/DeterminismAudit.js";
+import { CostDashboard } from "./components/cost/CostDashboard.js";
 import { ConfirmDialog } from "./components/shared/ConfirmDialog.js";
 import { api } from "./api/client.js";
 import styles from "./App.module.css";
@@ -57,28 +57,61 @@ export function App() {
 
   const sidebar = (
     <div className={styles.sidebar}>
-      <div className={styles.sidebarSection}>
-        <h4 className={styles.sidebarTitle}>Quick Actions</h4>
-        <button className={styles.actionBtn} onClick={handleRefresh}>
-          Refresh All
+      <div className={styles.navGroup}>
+        <button
+          className={`${styles.iconBtn} ${view === "dashboard" ? styles.iconBtnActive : ""}`}
+          onClick={() => setView("dashboard")}
+          title="Dashboard"
+        >
+          #
         </button>
         <button
-          className={`${styles.actionBtn} ${styles.dangerBtn}`}
-          onClick={() => setEmergencyConfirm(true)}
+          className={`${styles.iconBtn} ${view === "cost" ? styles.iconBtnActive : ""}`}
+          onClick={() => setView("cost")}
+          title="Cost"
         >
-          Emergency Stop
+          $
+        </button>
+        <button
+          className={`${styles.iconBtn} ${view === "scheduler" ? styles.iconBtnActive : ""}`}
+          onClick={() => setView("scheduler")}
+          title="Task Scheduler"
+        >
+          &gt;
+        </button>
+        <button
+          className={`${styles.iconBtn} ${view === "determinism" ? styles.iconBtnActive : ""}`}
+          onClick={() => setView("determinism")}
+          title="Determinism Audit"
+        >
+          ?
         </button>
       </div>
-      <div className={styles.sidebarSection}>
-        <h4 className={styles.sidebarTitle}>Keyboard</h4>
-        <div className={styles.shortcut}>
-          <kbd className={styles.key}>R</kbd>
-          <span>Refresh</span>
-        </div>
-        <div className={styles.shortcut}>
-          <kbd className={styles.key}>T</kbd>
-          <span>Theme</span>
-        </div>
+
+      <div className={styles.sidebarSpacer} />
+
+      <div className={styles.navGroup}>
+        <button
+          className={styles.iconBtn}
+          onClick={handleRefresh}
+          title="Refresh (R)"
+        >
+          R
+        </button>
+        <button
+          className={`${styles.iconBtn} ${styles.dangerBtn}`}
+          onClick={() => setEmergencyConfirm(true)}
+          title="Emergency Stop"
+        >
+          !
+        </button>
+        <button
+          className={styles.iconBtn}
+          onClick={toggleTheme}
+          title="Toggle Theme (T)"
+        >
+          {theme === "dark" ? "L" : "D"}
+        </button>
       </div>
     </div>
   );
@@ -105,13 +138,14 @@ export function App() {
           <>
             <AuditPanel key={`audit-${refreshKey}`} />
             <InstanceHealth key={`health-${refreshKey}`} />
-            <SpendMonitor key={`spend-${refreshKey}`} />
             <GitPanel key={`git-${refreshKey}`} />
             <ProcessMonitor key={`proc-${refreshKey}`} />
             <ActiveSessions key={`sessions-${refreshKey}`} />
             <AgentConfig key={`agents-${refreshKey}`} />
             <OllamaModels key={`ollama-${refreshKey}`} />
           </>
+        ) : view === "cost" ? (
+          <CostDashboard key={`cost-${refreshKey}`} />
         ) : view === "scheduler" ? (
           <TaskScheduler key={`scheduler-${refreshKey}`} />
         ) : (

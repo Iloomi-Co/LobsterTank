@@ -1,5 +1,5 @@
 {
-  "version": "1.5",
+  "version": "1.6",
   "description": "Maps canonical rule blocks from agents-rules.json to target AGENTS.md files. Used by sync-rules.sh to detect drift and apply fixes. Paths use ~ which the script expands to $HOME.",
   "lastUpdated": "2026-03-02",
   "targets": [
@@ -14,20 +14,6 @@
       "workspace": "beehive",
       "agentName": "Bee Hive (BZZR)",
       "path": "~/.openclaw/workspace-beehive/AGENTS.md",
-      "requiredRules": ["scheduling-rules", "log-locations", "cost-monitoring", "troubleshooting-flow", "heartbeat-rules", "automation-creation"],
-      "preserveSections": ["all"]
-    },
-    {
-      "workspace": "bee-email-poller",
-      "agentName": "Bee Email Poller",
-      "path": "~/.openclaw/workspace-bee-email-poller/AGENTS.md",
-      "requiredRules": ["scheduling-rules", "log-locations", "cost-monitoring", "troubleshooting-flow", "heartbeat-rules", "automation-creation"],
-      "preserveSections": ["all"]
-    },
-    {
-      "workspace": "bee-email-processor",
-      "agentName": "Bee Email Processor",
-      "path": "~/.openclaw/workspace-bee-email-processor/AGENTS.md",
       "requiredRules": ["scheduling-rules", "log-locations", "cost-monitoring", "troubleshooting-flow", "heartbeat-rules", "automation-creation"],
       "preserveSections": ["all"]
     }

@@ -21,12 +21,8 @@
   "modelPolicy": {
     "_comment": "Per-instance, per-agent allowed models. If a model appears in usage that isn't listed here, the dashboard alerts.",
     "personal": {
-      "bee-email-poller": {
-        "allowed": ["ollama/qwen3:14b"],
-        "alertOn": ["anthropic/*"]
-      },
-      "bee-email-processor": {
-        "allowed": ["anthropic/claude-haiku-4-5", "anthropic/claude-sonnet-4-5"],
+      "beehive": {
+        "allowed": ["anthropic/claude-sonnet-4-5", "anthropic/claude-haiku-4-5"],
         "alertOn": ["anthropic/claude-opus-4-5"]
       }
     }

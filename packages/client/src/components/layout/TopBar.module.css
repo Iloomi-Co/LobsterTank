@@ -2,8 +2,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 20px;
-  height: 48px;
+  padding: 0 24px;
+  height: 56px;
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border-primary);
   flex-shrink: 0;
@@ -16,9 +16,9 @@
 }
 
 .logo {
-  font-size: var(--font-size-lg);
-  font-weight: 700;
-  color: var(--text-accent);
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
 }
 
 .subtitle {
@@ -26,33 +26,36 @@
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.1em;
+  font-weight: var(--font-weight-medium);
 }
 
 .nav {
   display: flex;
   gap: 2px;
-  margin-left: 16px;
+  margin-left: 20px;
   padding: 4px;
   background: var(--bg-tertiary);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
 }
 
 .navTab {
-  padding: 4px 12px;
+  padding: 6px 14px;
   border-radius: var(--radius-sm);
   font-size: var(--font-size-sm);
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
   color: var(--text-secondary);
   transition: all var(--transition-fast);
 }
 
 .navTab:hover {
   color: var(--text-primary);
+  background: var(--bg-hover);
 }
 
 .navActive {
-  background: var(--bg-active);
+  background: var(--accent-primary-dim);
   color: var(--text-accent);
+  font-weight: var(--font-weight-semibold);
 }
 
 .center {
@@ -64,6 +67,7 @@
   padding: 6px 14px;
   border-radius: var(--radius-sm);
   font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
   color: var(--text-secondary);
   transition: all var(--transition-fast);
 }
@@ -74,7 +78,7 @@
 }
 
 .tab.active {
-  background: var(--bg-active);
+  background: var(--accent-primary-dim);
   color: var(--text-accent);
 }
 
@@ -91,11 +95,12 @@
 
 .themeBtn,
 .refreshBtn {
-  padding: 4px 12px;
-  background: var(--bg-tertiary);
+  padding: 6px 14px;
+  background: transparent;
   border: 1px solid var(--border-primary);
   border-radius: var(--radius-sm);
   font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
   color: var(--text-secondary);
   transition: all var(--transition-fast);
 }
@@ -104,4 +109,5 @@
 .refreshBtn:hover {
   background: var(--bg-hover);
   color: var(--text-primary);
+  border-color: var(--text-muted);
 }
