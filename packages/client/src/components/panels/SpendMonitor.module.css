@@ -1,7 +1,7 @@
 .content {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 20px;
 }
 
 .offlineNotice {
@@ -12,70 +12,316 @@
   font-size: var(--font-size-sm);
 }
 
-.totalCard {
+/* ── Summary cards ─────────────────────────── */
+
+.summaryRow {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.summaryCard {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px;
   background: var(--bg-tertiary);
   border-radius: var(--radius-md);
 }
 
-.totalLabel {
-  font-size: var(--font-size-sm);
+.summaryLabel {
+  font-size: var(--font-size-xs);
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
-.totalValue {
+.summaryValue {
   font-size: var(--font-size-xl);
   font-weight: 700;
   color: var(--text-accent);
 }
 
-.balanceCard {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px;
-  background: var(--bg-tertiary);
-  border-radius: var(--radius-sm);
-}
-
-.balanceLabel {
-  font-size: var(--font-size-sm);
-  color: var(--text-muted);
-}
-
-.balanceValue {
+.summaryValueSm {
   font-size: var(--font-size-md);
-  color: var(--green);
+  font-weight: 600;
+  color: var(--text-primary);
 }
+
+/* ── Section titles ────────────────────────── */
 
 .sectionTitle {
   font-size: var(--font-size-xs);
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
 }
 
-.modelBreakdown {
-  padding-top: 4px;
-}
+/* ── Bar chart ─────────────────────────────── */
 
-.modelRow {
+.chartSection {
   display: flex;
-  justify-content: space-between;
-  padding: 4px 0;
+  flex-direction: column;
+}
+
+.chart {
+  display: flex;
+  gap: 6px;
+  align-items: flex-end;
+  height: 180px;
+  padding: 0 4px;
+}
+
+.barCol {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  height: 100%;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  padding: 2px;
+  transition: background 0.15s;
+}
+
+.barCol:hover {
+  background: var(--bg-tertiary);
+}
+
+.barColActive {
+  background: var(--bg-tertiary);
+}
+
+.barCost {
+  font-size: 10px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.barTrack {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.barFillWrap {
+  width: 70%;
+  max-width: 40px;
+  border-radius: 3px 3px 0 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.barCacheRead {
+  background: var(--green);
+  opacity: 0.8;
+}
+
+.barCacheWrite {
+  background: var(--purple);
+  opacity: 0.7;
+}
+
+.barDirect {
+  background: var(--blue);
+  opacity: 0.9;
+}
+
+.barLabel {
+  font-size: 10px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.barLabelToday {
+  color: var(--text-accent);
+  font-weight: 600;
+}
+
+.legend {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.legendDotCacheRead,
+.legendDotCacheWrite,
+.legendDotDirect {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+}
+
+.legendDotCacheRead { background: var(--green); opacity: 0.8; }
+.legendDotCacheWrite { background: var(--purple); opacity: 0.7; }
+.legendDotDirect { background: var(--blue); opacity: 0.9; }
+
+/* ── Cost breakdown ────────────────────────── */
+
+.breakdownSection {
+  display: flex;
+  flex-direction: column;
+}
+
+.breakdownGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.costRow {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.costRowHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-size: var(--font-size-sm);
 }
 
-.modelName {
-  color: var(--text-secondary);
+.costRowDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex-shrink: 0;
 }
 
-.modelCost {
+.costRowLabel {
+  color: var(--text-secondary);
+  flex: 1;
+}
+
+.costRowValue {
+  color: var(--text-primary);
+  font-weight: 600;
+  min-width: 70px;
+  text-align: right;
+}
+
+.costRowPct {
+  color: var(--text-muted);
+  min-width: 50px;
+  text-align: right;
+  font-size: var(--font-size-xs);
+}
+
+.costRowBar {
+  height: 4px;
+  background: var(--bg-tertiary);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.costRowBarFill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+.costRowTokens {
+  font-size: 11px;
+  color: var(--text-muted);
+  padding-left: 16px;
+}
+
+/* ── Cache efficiency ──────────────────────── */
+
+.cacheSection {
+  display: flex;
+  flex-direction: column;
+}
+
+.cacheBar {
+  display: flex;
+  height: 12px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--bg-tertiary);
+}
+
+.cacheBarRead {
+  background: var(--green);
+  opacity: 0.8;
+  transition: width 0.3s ease;
+}
+
+.cacheBarWrite {
+  background: var(--purple);
+  opacity: 0.6;
+  transition: width 0.3s ease;
+}
+
+.cacheLabels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.cacheNote {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  margin-top: 6px;
+  line-height: 1.4;
+}
+
+/* ── Day detail (expanded) ─────────────────── */
+
+.dayDetail {
+  padding: 14px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-md);
+}
+
+.dayDetailHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.dayDetailHeader .sectionTitle {
+  margin-bottom: 0;
+}
+
+.dayDetailGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.dayDetailItem {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dayDetailLabel {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.dayDetailValue {
+  font-size: var(--font-size-sm);
   color: var(--text-primary);
 }
