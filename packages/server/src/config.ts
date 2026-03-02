@@ -33,7 +33,7 @@ export const EXPECTED_CRON_ENTRIES = [
   { script: "rogue-watchdog.sh", match: "rogue-watchdog.sh", schedule: "*/5 * * * *", command: "~/bin/rogue-watchdog.sh 2>/dev/null" },
   { script: "weekly-audit.sh", match: "weekly-audit.sh", schedule: "0 6 * * 1", command: "~/bin/weekly-audit.sh >> ~/.openclaw/logs/audit.log 2>&1" },
   { script: "daily-spend-check.sh", match: "daily-spend-check.sh", schedule: "0 18 * * 1-5", command: "~/bin/daily-spend-check.sh personal 10.00 >> ~/.openclaw/logs/spend.log 2>&1" },
-  { script: "openclaw-agent-wrapper.sh", match: "bee-email-poller", schedule: "*/5 * * * *", command: '~/bin/openclaw-agent-wrapper.sh bee-email-poller bee-email-processor "Check and process emails" slack' },
+  { script: "bee-email-check.sh", match: "bee-email-check.sh", schedule: "*/5 * * * *", command: "~/bin/bee-email-check.sh 2>/dev/null" },
   { script: "openclaw-portfolio-wrapper.sh", match: "openclaw-portfolio-wrapper.sh", schedule: "0 6,15 * * 1-5", command: "~/bin/openclaw-portfolio-wrapper.sh >> ~/.openclaw/logs/portfolio-$(date +\\%Y-\\%m-\\%d).log 2>&1" },
   { script: "ollama", match: "ollama run qwen3", schedule: "@reboot", command: '/opt/homebrew/bin/ollama run qwen3:14b --keepalive -1s <<< "/bye"' },
 ];
@@ -45,7 +45,7 @@ export const SCRIPT_LOG_MAP: Record<string, string | ((date: Date) => string)> =
   "rogue-watchdog.sh": "audit.log",
   "weekly-audit.sh": "audit.log",
   "daily-spend-check.sh": "spend.log",
-  "openclaw-agent-wrapper.sh": (d: Date) =>
+  "bee-email-check.sh": (d: Date) =>
     `cron-${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}.log`,
   "openclaw-portfolio-wrapper.sh": (d: Date) =>
     `portfolio-${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}.log`,
@@ -57,7 +57,7 @@ export const SCRIPT_DESCRIPTIONS: Record<string, string> = {
   "rogue-watchdog.sh": "Monitors for unauthorized OC processes",
   "weekly-audit.sh": "Weekly security and config audit",
   "daily-spend-check.sh": "Daily API spend threshold check",
-  "openclaw-agent-wrapper.sh": "Runs scheduled OC agent task",
+  "bee-email-check.sh": "Lightweight email check (himalaya IMAP pre-gate)",
   "openclaw-portfolio-wrapper.sh": "Portfolio analysis job",
   "sync-rules.sh": "Syncs config rules to deployed location",
 };
