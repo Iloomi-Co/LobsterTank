@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "description": "Canonical rule blocks that MUST exist in every agent AGENTS.md file. Used by sync-rules.sh and LobsterTank to detect and fix config drift.",
-  "lastUpdated": "2026-03-01",
+  "lastUpdated": "2026-03-02",
   "ruleBlocks": [
     {
       "id": "scheduling-rules",
@@ -52,6 +52,17 @@
       "content": "## Heartbeat & Scheduling Boundaries\n\nHEARTBEAT.md is a **reference document**, not an instruction sheet. It describes what automation exists and where to find it.\n\n### What you MUST NOT do:\n- Do NOT read the clock and decide to perform time-based actions (send emails, compile reports, run audits)\n- Do NOT treat polling schedule tables as instructions to self-schedule\n- Do NOT initiate portfolio status emails, daily summaries, or any recurring task on your own\n- Do NOT interpret \"6:00 AM MT\" in any document as \"I should do this at 6 AM\"\n\n### What triggers recurring tasks:\n- **Crontab entries** trigger wrapper scripts at the right times\n- **Wrapper scripts** spawn agents with explicit messages like \"compile and send portfolio status now\"\n- **You** only act when spawned with a specific instruction from a wrapper\n\n### If a recurring task is not happening:\nThe fix is in the crontab or wrapper script, NOT in you deciding to do it manually.\nFollow the Troubleshooting Flow above (start with `crontab -l`).\n\nThe ONLY actions you should take on your own initiative are:\n1. Responding to direct user messages (Slack, email)\n2. Tasks explicitly listed in the message that spawned your current session",
       "validation": {
         "mustContain": ["reference document", "MUST NOT", "read the clock", "crontab entries", "wrapper scripts", "Troubleshooting Flow"]
+      }
+    },
+    {
+      "id": "automation-creation",
+      "title": "Automation Creation (LLM as Compiler)",
+      "description": "Teaches agents the compiler pattern: when asked to create a recurring task, generate deterministic infrastructure (wrapper script + crontab entry) instead of self-scheduling or using non-deterministic OC scheduling.",
+      "insertAfter": "Heartbeat & Scheduling Boundaries",
+      "content": "## Automation Creation (LLM as Compiler)\n\nWhen a user asks you to create a recurring task, scheduled job, or automated workflow, you are acting as a **compiler**: translating the user's intent into deterministic infrastructure that runs without LLM cost.\n\n### What You Generate\n\nFor every recurring task, produce ALL of these artifacts:\n\n1. **Wrapper script** (`~/bin/<task-name>-wrapper.sh`)\n   - Bash script with `set -euo pipefail`\n   - Includes pause file check (`~/.openclaw/.cron-paused` and `~/.openclaw/.pause-<task>`)\n   - Includes lightweight pre-check before any LLM call (e.g., check inbox count before spawning agent)\n   - Logs to `~/.openclaw/logs/<task-name>-YYYY-MM-DD.log`\n   - Uses specific, scoped agent messages — never open-ended prompts\n   - Handles errors gracefully (log and exit, don't crash)\n\n2. **Crontab entry** — standard cron expression, append logs, verify with `crontab -l`\n\n3. **Pause file convention** (`~/.openclaw/.pause-<task>`) — `touch` to pause, `rm` to resume\n\n4. **Log path** (`~/.openclaw/logs/<task-name>-YYYY-MM-DD.log`) — date-based, directory pre-created\n\n5. **Boot resilience** — if task depends on a local model, ensure `@reboot` entry loads it\n\n### The Pre-Check Gate (CRITICAL)\n\nEvery wrapper script MUST include a lightweight pre-check before spawning an LLM agent:\n\n- GOOD: `COUNT=$(himalaya list -n 2>/dev/null | wc -l)` then only spawn agent if COUNT > 0\n- BAD: `openclaw agent --message \"Check if there are any new emails\"` (wastes tokens every cycle)\n\nThe deterministic layer (bash, himalaya, curl, jq, grep) answers \"is there work to do?\" The LLM only fires when the answer is yes.\n\n### Present Before Generating\n\nBefore creating anything, show the user what you plan to build:\n- Script path and what it does\n- Cron schedule in human-readable form\n- Pre-check mechanism\n- Log path\n- Pause convention\n\nOnly proceed after user confirmation.\n\n### What You NEVER Generate\n\n- LaunchD plist files (see Scheduling Rules above)\n- `openclaw cron add` entries (see Scheduling Rules above)\n- Self-modifying scripts (scripts don't call back to the LLM to decide what to do next)\n- Open-ended agent prompts (\"go check things\" is never valid — every LLM call is scoped and specific)\n- Scripts without pre-checks (every recurring script gates LLM calls behind a deterministic check)\n\n### Modifying Existing Automations\n\nWhen changing an existing recurring task:\n1. Read the existing wrapper: `cat ~/bin/<task>-wrapper.sh`\n2. Show the user what you plan to change\n3. Modify and reinstall after confirmation\n4. Verify with `crontab -l` and a test run",
+      "validation": {
+        "mustContain": ["compiler", "wrapper script", "crontab entry", "pre-check", "pause file", "NEVER Generate"],
+        "mustNotContain": []
       }
     }
   ]

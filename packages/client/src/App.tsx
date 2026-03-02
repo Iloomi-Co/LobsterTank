@@ -11,6 +11,7 @@ import { OllamaModels } from "./components/panels/OllamaModels.js";
 import { AuditPanel } from "./components/panels/AuditPanel.js";
 import { GitPanel } from "./components/panels/GitPanel.js";
 import { TaskScheduler } from "./components/scheduler/TaskScheduler.js";
+import { DeterminismAudit } from "./components/determinism/DeterminismAudit.js";
 import { ConfirmDialog } from "./components/shared/ConfirmDialog.js";
 import { api } from "./api/client.js";
 import styles from "./App.module.css";
@@ -111,8 +112,10 @@ export function App() {
             <AgentConfig key={`agents-${refreshKey}`} />
             <OllamaModels key={`ollama-${refreshKey}`} />
           </>
-        ) : (
+        ) : view === "scheduler" ? (
           <TaskScheduler key={`scheduler-${refreshKey}`} />
+        ) : (
+          <DeterminismAudit key={`determinism-${refreshKey}`} />
         )}
       </Shell>
 

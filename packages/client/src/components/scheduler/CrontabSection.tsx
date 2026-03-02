@@ -19,6 +19,7 @@ interface CrontabSectionProps {
   pathLine: string | null;
   onToggle: (lineIndex: number, enabled: boolean) => void;
   onViewLogs: (scriptName: string) => void;
+  onViewScript: (entry: CrontabEntry) => void;
   onEditCrontab: () => void;
 }
 
@@ -100,7 +101,7 @@ function cronToHuman(schedule: string): string {
   return schedule;
 }
 
-export function CrontabSection({ entries, pathLine, onToggle, onViewLogs, onEditCrontab }: CrontabSectionProps) {
+export function CrontabSection({ entries, pathLine, onToggle, onViewLogs, onViewScript, onEditCrontab }: CrontabSectionProps) {
   const activeCount = entries.filter((e) => e.status === "active").length;
 
   const columns = [
@@ -152,13 +153,13 @@ export function CrontabSection({ entries, pathLine, onToggle, onViewLogs, onEdit
       render: (e: CrontabEntry) => (
         <div className={styles.actions}>
           {e.logFile && (
-            <button className={styles.actionBtn} onClick={() => onViewLogs(e.script)}>
+            <button className={styles.actionBtn} onClick={(ev) => { ev.stopPropagation(); onViewLogs(e.script); }}>
               Logs
             </button>
           )}
           <button
             className={styles.actionBtn}
-            onClick={() => onToggle(e.lineIndex, e.status === "paused")}
+            onClick={(ev) => { ev.stopPropagation(); onToggle(e.lineIndex, e.status === "paused"); }}
           >
             {e.status === "paused" ? "Enable" : "Disable"}
           </button>
@@ -179,7 +180,7 @@ export function CrontabSection({ entries, pathLine, onToggle, onViewLogs, onEdit
         </button>
       </div>
       <div className={styles.body}>
-        <DataTable columns={columns} data={entries} rowKey={(e) => String(e.lineIndex)} compact />
+        <DataTable columns={columns} data={entries} rowKey={(e) => String(e.lineIndex)} onRowClick={onViewScript} compact />
         {pathLine && <div className={styles.pathLine}>{pathLine}</div>}
       </div>
     </div>

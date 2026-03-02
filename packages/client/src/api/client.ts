@@ -104,4 +104,24 @@ export const api = {
     }),
   schedulerLogs: (scriptName: string) =>
     request<{ content: string; lines: number }>(`/scheduler/logs/${encodeURIComponent(scriptName)}`),
+  schedulerScript: (scriptName: string) =>
+    request<{ content: string; path: string }>(`/scheduler/script/${encodeURIComponent(scriptName)}`),
+
+  // Step 5: Determinism Audit
+  determinismScan: () => request<any>("/determinism/scan"),
+  determinismDeepScan: (findingIds?: string[]) =>
+    request<any>("/determinism/deep-scan", {
+      method: "POST",
+      body: JSON.stringify({ findingIds }),
+    }),
+  determinismDispatch: (findingId: string, instruction: string) =>
+    request<any>("/determinism/dispatch", {
+      method: "POST",
+      body: JSON.stringify({ findingId, instruction }),
+    }),
+  determinismExport: () => request<any>("/determinism/export"),
+
+  // Step 6: Gateway
+  gatewayRestart: () =>
+    request<any>("/gateway/restart", { method: "POST" }),
 };

@@ -282,7 +282,7 @@ function generateChangePlan(
   lines.push("── CRONTAB CHANGES ────────────────────────────────");
   lines.push("");
   lines.push(`  Current entries: ${crontab.entries.length}`);
-  lines.push(`  Expected entries: ${crontab.expected.length + crontab.entries.length - crontab.toAdd.length / 1}`);
+  lines.push(`  Expected entries: ${crontab.expected.length}`);
   lines.push("");
   for (const entry of crontab.toAdd) {
     lines.push(`  ADD     ${entry}`);
@@ -376,7 +376,9 @@ auditRoutes.post("/apply", async (req, res) => {
     if (apply.configSync) {
       const syncScript = join(DEPLOY_SCRIPTS, "sync-rules.sh");
       const syncResult = await safeExec("bash", [syncScript, "--apply", "--json"], { timeout: 15000 });
-      results.push(`Config sync: ${syncResult.exitCode === 0 ? "applied" : "failed"}`);
+      // Exit 0 = all aligned after apply, exit 1 = some outdated rules remain (skipped by design).
+      // Both mean the apply itself ran successfully. Only exit >= 2 is a real failure.
+      results.push(`Config sync: ${syncResult.exitCode <= 1 ? "applied" : "failed"}`);
     }
 
     // Apply script deployment
@@ -437,6 +439,28 @@ auditRoutes.post("/apply", async (req, res) => {
       results.push(`Crontab: ${installResult.exitCode === 0 ? "installed" : "failed"}`);
     }
 
+    // Auto-restart gateway if config sync was applied (agents pick up new rules)
+    let gatewayRestart: { oldPid: number | null; newPid: number | null } | null = null;
+    if (apply.configSync) {
+      const oldPidResult = await safeExec("lsof", ["-i", `:${OC_GATEWAY_PORT}`, "-t"]);
+      const oldPid = oldPidResult.stdout.trim() ? parseInt(oldPidResult.stdout.trim().split("\n")[0], 10) : null;
+
+      await logAction("GATEWAY_RESTART", `Auto-restart after config sync apply. Old PID: ${oldPid ?? "none"}`);
+      const restartResult = await safeExec("openclaw", ["gateway", "restart"], { timeout: 30000 });
+
+      if (restartResult.exitCode === 0) {
+        await new Promise((r) => setTimeout(r, 2000));
+        const newPidResult = await safeExec("lsof", ["-i", `:${OC_GATEWAY_PORT}`, "-t"]);
+        const newPid = newPidResult.stdout.trim() ? parseInt(newPidResult.stdout.trim().split("\n")[0], 10) : null;
+        gatewayRestart = { oldPid, newPid };
+        results.push(`Gateway restart: PID ${oldPid ?? "none"} → ${newPid ?? "none"}`);
+        await logAction("GATEWAY_RESTART_OK", `Old PID: ${oldPid ?? "none"} → New PID: ${newPid ?? "none"}`);
+      } else {
+        results.push("Gateway restart: failed");
+        await logAction("GATEWAY_RESTART_FAILED", restartResult.stderr || restartResult.stdout);
+      }
+    }
+
     // Post-apply git snapshot
     await snapshot(OC_HOME, `LobsterTank: applied ${Object.entries(apply).filter(([,v]) => v).map(([k]) => k).join(", ")}`);
 
@@ -457,6 +481,7 @@ auditRoutes.post("/apply", async (req, res) => {
       ok: true,
       data: {
         applied: results,
+        gatewayRestart,
         timestamp: new Date().toISOString(),
         target: "~/.openclaw",
         configSync,

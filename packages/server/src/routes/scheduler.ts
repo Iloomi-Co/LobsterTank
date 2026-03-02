@@ -435,6 +435,40 @@ schedulerRoutes.post("/launchd/remove", async (req, res) => {
   }
 });
 
+// --- GET /script/:scriptName ---
+
+schedulerRoutes.get("/script/:scriptName", async (req, res) => {
+  const { scriptName } = req.params;
+
+  // Only allow .sh files from BIN_DIR
+  if (!scriptName.endsWith(".sh") || scriptName.includes("/") || scriptName.includes("..")) {
+    res.status(400).json({ ok: false, error: "Invalid script name", timestamp: new Date().toISOString() });
+    return;
+  }
+
+  try {
+    const scriptPath = join(BIN_DIR, scriptName);
+    const { data: content } = await readTextFile(scriptPath);
+
+    if (!content) {
+      res.json({
+        ok: true,
+        data: { content: "# Script file not found", path: scriptPath },
+        timestamp: new Date().toISOString(),
+      });
+      return;
+    }
+
+    res.json({
+      ok: true,
+      data: { content, path: scriptPath },
+      timestamp: new Date().toISOString(),
+    });
+  } catch (e: any) {
+    res.json({ ok: false, error: e.message, timestamp: new Date().toISOString() });
+  }
+});
+
 // --- GET /logs/:scriptName ---
 
 schedulerRoutes.get("/logs/:scriptName", async (req, res) => {

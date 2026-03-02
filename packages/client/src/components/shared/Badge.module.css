@@ -37,3 +37,8 @@
   background: rgba(176, 128, 224, 0.15);
   color: var(--purple);
 }
+
+.muted {
+  background: var(--bg-tertiary);
+  color: var(--text-muted);
+}

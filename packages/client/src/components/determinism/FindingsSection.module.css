@@ -1,0 +1,244 @@
+.section {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-panel);
+  overflow: hidden;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-secondary);
+}
+
+.sectionTitle {
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.filters {
+  display: flex;
+  gap: 4px;
+}
+
+.filterBtn {
+  padding: 3px 10px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.filterBtn:hover {
+  color: var(--text-secondary);
+}
+
+.filterActive {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  border-color: var(--text-accent);
+}
+
+.findings {
+  padding: 8px;
+}
+
+.noFindings {
+  padding: 24px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.finding {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  margin-bottom: 6px;
+  overflow: hidden;
+}
+
+.finding:last-child {
+  margin-bottom: 0;
+}
+
+.severity_high {
+  border-left: 3px solid var(--red);
+}
+
+.severity_medium {
+  border-left: 3px solid var(--yellow);
+}
+
+.severity_low {
+  border-left: 3px solid var(--blue);
+}
+
+.severity_info {
+  border-left: 3px solid var(--text-muted);
+}
+
+.findingHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.findingHeader:hover {
+  background: var(--bg-hover);
+}
+
+.findingLeft {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.findingExcerpt {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.findingRight {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.findingFile {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.chevron {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.findingBody {
+  padding: 12px 16px;
+  border-top: 1px solid var(--border-subtle);
+  background: var(--bg-secondary);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.detail {
+  display: flex;
+  gap: 8px;
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+}
+
+.detail label {
+  color: var(--text-muted);
+  font-weight: 500;
+  flex-shrink: 0;
+  min-width: 120px;
+}
+
+.detail span {
+  color: var(--text-secondary);
+}
+
+.llmReview {
+  margin-top: 8px;
+  padding: 12px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-sm);
+}
+
+.llmHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.llmTitle {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.llmReasoning {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.llmRewrite {
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  font-family: var(--font-mono);
+  color: var(--text-secondary);
+  overflow-x: auto;
+  white-space: pre-wrap;
+}
+
+.findingActions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.reviewBtn {
+  padding: 4px 12px;
+  background: var(--yellow-dim);
+  border: 1px solid var(--yellow);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  color: var(--yellow);
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+}
+
+.reviewBtn:hover {
+  opacity: 0.9;
+}
+
+.reviewBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.dispatchBtn {
+  padding: 4px 12px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.dispatchBtn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}

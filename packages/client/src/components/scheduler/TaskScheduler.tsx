@@ -5,6 +5,7 @@ import { CrontabSection } from "./CrontabSection.js";
 import { OcCronSection } from "./OcCronSection.js";
 import { LaunchdSection } from "./LaunchdSection.js";
 import { LogModal } from "./LogModal.js";
+import { ScriptModal } from "./ScriptModal.js";
 import { CrontabEditor } from "./CrontabEditor.js";
 import styles from "./TaskScheduler.module.css";
 
@@ -44,6 +45,12 @@ export function TaskScheduler() {
   const { data, error, loading, refresh } = usePolling<SchedulerState>({ fetcher, interval: 30000 });
 
   const [logModal, setLogModal] = useState<string | null>(null);
+  const [scriptModal, setScriptModal] = useState<{
+    script: string;
+    schedule: string;
+    description: string;
+    command: string;
+  } | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
 
   const handleToggleCron = async (lineIndex: number, enabled: boolean) => {
@@ -105,6 +112,12 @@ export function TaskScheduler() {
         pathLine={data.crontab.pathLine}
         onToggle={handleToggleCron}
         onViewLogs={setLogModal}
+        onViewScript={(entry) => setScriptModal({
+          script: entry.script,
+          schedule: entry.schedule,
+          description: entry.description,
+          command: entry.command,
+        })}
         onEditCrontab={() => setEditorOpen(true)}
       />
 
@@ -123,6 +136,16 @@ export function TaskScheduler() {
 
       {logModal && (
         <LogModal scriptName={logModal} onClose={() => setLogModal(null)} />
+      )}
+
+      {scriptModal && (
+        <ScriptModal
+          scriptName={scriptModal.script}
+          schedule={scriptModal.schedule}
+          description={scriptModal.description}
+          command={scriptModal.command}
+          onClose={() => setScriptModal(null)}
+        />
       )}
 
       {editorOpen && (

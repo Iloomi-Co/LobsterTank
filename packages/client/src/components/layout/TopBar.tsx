@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import styles from "./TopBar.module.css";
 
-export type ViewType = "dashboard" | "scheduler";
+export type ViewType = "dashboard" | "scheduler" | "determinism";
 
 interface TopBarProps {
   instances: { id: string; name: string }[];
@@ -49,6 +49,12 @@ export function TopBar({
           onClick={() => onViewChange("scheduler")}
         >
           Task Scheduler
+        </button>
+        <button
+          className={`${styles.navTab} ${activeView === "determinism" ? styles.navActive : ""}`}
+          onClick={() => onViewChange("determinism")}
+        >
+          Determinism Audit
         </button>
       </nav>
       {activeView === "dashboard" && (

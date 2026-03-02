@@ -24,9 +24,43 @@
   color: var(--text-muted);
 }
 
+.gatewayActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .pid {
   font-size: var(--font-size-xs);
   color: var(--text-muted);
+}
+
+.restartBtn {
+  font-size: var(--font-size-xs);
+  padding: 4px 10px;
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.restartBtn:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.restartBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.restartToast {
+  font-size: var(--font-size-xs);
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  background: rgba(176, 128, 224, 0.15);
+  color: var(--purple);
 }
 
 .sectionTitle {

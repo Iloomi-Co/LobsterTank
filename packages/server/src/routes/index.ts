@@ -17,6 +17,8 @@ import { crontabRoutes } from "./crontab.js";
 import { registryRoutes } from "./registry.js";
 import { gitRoutes } from "./git.js";
 import { schedulerRoutes } from "./scheduler.js";
+import { determinismRoutes } from "./determinism.js";
+import { gatewayRoutes } from "./gateway.js";
 import type { ApiResponse } from "../types/index.js";
 
 export const routes = Router();
@@ -53,3 +55,9 @@ routes.use("/git", gitRoutes);
 
 // Step 4 routes
 routes.use("/scheduler", schedulerRoutes);
+
+// Step 5 routes
+routes.use("/determinism", determinismRoutes);
+
+// Step 6 routes
+routes.use("/gateway", gatewayRoutes);

@@ -2,7 +2,7 @@ import styles from "./Badge.module.css";
 
 interface BadgeProps {
   label: string;
-  variant?: "default" | "green" | "red" | "yellow" | "blue" | "purple";
+  variant?: "default" | "green" | "red" | "yellow" | "blue" | "purple" | "muted";
 }
 
 export function Badge({ label, variant = "default" }: BadgeProps) {
