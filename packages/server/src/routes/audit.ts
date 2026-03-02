@@ -9,7 +9,7 @@ import { logAction } from "../lib/action-logger.js";
 import {
   OC_HOME, OC_GATEWAY_PORT, DEPLOY_SCRIPTS, DEPLOY_CONFIG,
   BIN_DIR, DEPLOYED_CONFIG_DIR, OC_LOGS_DIR,
-  REGISTRY_FILE, EXPECTED_CRON_ENTRIES, CRONTAB_PATH_LINE,
+  REGISTRY_FILE, CRONTAB_PATH_LINE, getExpectedCronEntries,
 } from "../config.js";
 import { ensureGitRepo, isGitRepo, isClean, snapshot, getLastCommit } from "../lib/git.js";
 
@@ -50,6 +50,7 @@ interface ScriptStatus {
 async function checkScripts(): Promise<{ scripts: ScriptStatus[]; configFiles: any[] }> {
   const { entries: sourceScripts } = await listDir(DEPLOY_SCRIPTS);
   const scripts: ScriptStatus[] = [];
+  const allExpectedEntries = await getExpectedCronEntries();
 
   // Get current crontab
   const cronResult = await safeExec("crontab", ["-l"]);
@@ -83,7 +84,7 @@ async function checkScripts(): Promise<{ scripts: ScriptStatus[]; configFiles: a
     }
 
     // Check cron entries (a script may have multiple cron entries)
-    const expectedCrons = EXPECTED_CRON_ENTRIES.filter((e) => e.script === file);
+    const expectedCrons = allExpectedEntries.filter((e) => e.script === file);
     const cronInstalled = expectedCrons.length > 0
       ? expectedCrons.every((e) => currentCrontab.includes(e.match))
       : true;
@@ -122,12 +123,13 @@ interface CrontabAudit {
   hasPath: boolean;
   pathLine: string | null;
   entries: { schedule: string; command: string; scriptName: string }[];
-  expected: typeof EXPECTED_CRON_ENTRIES;
+  expected: { script: string; match: string; schedule: string; command: string }[];
   toAdd: string[];
   toFix: string[];
 }
 
 async function checkCrontab(): Promise<CrontabAudit> {
+  const allExpectedEntries = await getExpectedCronEntries();
   const result = await safeExec("crontab", ["-l"]);
   const raw = result.exitCode === 0 ? result.stdout : "";
   const lines = raw.split("\n");
@@ -151,7 +153,7 @@ async function checkCrontab(): Promise<CrontabAudit> {
 
   if (!hasPath) toFix.push("PATH line missing");
 
-  for (const expected of EXPECTED_CRON_ENTRIES) {
+  for (const expected of allExpectedEntries) {
     const found = raw.includes(expected.match);
     if (!found) {
       toAdd.push(`${expected.schedule} ${expected.command}`);
@@ -163,7 +165,7 @@ async function checkCrontab(): Promise<CrontabAudit> {
     toFix.push("Ollama --keepalive uses -1 instead of -1s");
   }
 
-  return { raw, hasPath, pathLine, entries, expected: EXPECTED_CRON_ENTRIES, toAdd, toFix };
+  return { raw, hasPath, pathLine, entries, expected: allExpectedEntries, toAdd, toFix };
 }
 
 // ─── Sub-check: Issues ─────────────────────────────────────
@@ -419,7 +421,8 @@ auditRoutes.post("/apply", async (req, res) => {
       }
 
       // Add missing entries
-      for (const entry of EXPECTED_CRON_ENTRIES) {
+      const allExpectedEntries = await getExpectedCronEntries();
+      for (const entry of allExpectedEntries) {
         if (!currentCrontab.includes(entry.match)) {
           currentCrontab += `\n${entry.schedule} ${entry.command}`;
         }
