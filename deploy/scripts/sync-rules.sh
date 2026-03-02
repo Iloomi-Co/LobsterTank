@@ -196,12 +196,26 @@ else:
             fi
         done
 
-        # For outdated rules, replace the section
+        # For outdated rules, replace the section with canonical content
         for RULE_ID in "${WORKSPACE_OUTDATED[@]+"${WORKSPACE_OUTDATED[@]}"}"; do
+            RULE_CONTENT=$(jq -r ".ruleBlocks[] | select(.id == \"$RULE_ID\") | .content" "$RULES_FILE")
             RULE_TITLE=$(jq -r ".ruleBlocks[] | select(.id == \"$RULE_ID\") | .title" "$RULES_FILE")
-            log "OUTDATED_SKIPPED: $RULE_TITLE in $DISPLAY_PATH (manual review recommended)"
+
+            # Replace: find "## Title" through to next "## " heading (or EOF)
+            UPDATED_CONTENT=$(python3 -c "
+import sys, re
+content = sys.stdin.read()
+title = sys.argv[1]
+replacement = sys.argv[2]
+# Match from '## Title' to just before the next '## ' heading or end of file
+pattern = re.escape('## ' + title) + r'.*?(?=\n## |\Z)'
+new_content = re.sub(pattern, replacement, content, count=1, flags=re.DOTALL)
+sys.stdout.write(new_content)
+" "$RULE_TITLE" "$RULE_CONTENT" <<< "$UPDATED_CONTENT")
+
+            log "REPLACED: $RULE_TITLE in $DISPLAY_PATH"
             if [[ "$FORMAT" == "text" ]]; then
-                echo "    SKIPPED  $RULE_TITLE (outdated, needs manual review)"
+                echo "    REPLACED  $RULE_TITLE"
             fi
         done
 
