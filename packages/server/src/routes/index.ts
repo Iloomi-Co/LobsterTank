@@ -19,6 +19,7 @@ import { gitRoutes } from "./git.js";
 import { schedulerRoutes } from "./scheduler.js";
 import { determinismRoutes } from "./determinism.js";
 import { gatewayRoutes } from "./gateway.js";
+import { spendByModelRoutes } from "./spend-by-model.js";
 import type { ApiResponse } from "../types/index.js";
 
 export const routes = Router();
@@ -35,6 +36,7 @@ routes.get("/ping", (_req, res) => {
 // Step 1 routes
 routes.use("/health", healthRoutes);
 routes.use("/processes", processRoutes);
+routes.use("/spend/by-model", spendByModelRoutes);
 routes.use("/spend", spendRoutes);
 routes.use("/launchd", launchdRoutes);
 routes.use("/sessions", sessionRoutes);

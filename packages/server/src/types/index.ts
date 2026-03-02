@@ -65,6 +65,34 @@ export interface SpendData {
   error?: string;
 }
 
+export interface ModelSpendEntry {
+  model: string;
+  provider: string;
+  invocations: number;
+  estimatedInputTokens: number;
+  estimatedOutputTokens: number;
+  estimatedCost: number;
+  isLocal: boolean;
+  agents: string[];
+}
+
+export interface DailyModelSpend {
+  date: string;
+  models: Record<string, number>;
+  total: number;
+}
+
+export interface ModelSpendResponse {
+  models: ModelSpendEntry[];
+  totalEstimatedCost: number;
+  localSavings: number;
+  activeModelCount: number;
+  mostActiveModel: string;
+  daily: DailyModelSpend[];
+  lastUpdated: string;
+  error?: string;
+}
+
 export interface LaunchdJob {
   label: string;
   pid: number | null;

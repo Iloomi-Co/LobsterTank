@@ -26,6 +26,7 @@ export const api = {
   killProcess: (pid: number) =>
     request<any>("/processes/kill", { method: "POST", body: JSON.stringify({ pid }) }),
   spend: () => request<any>("/spend"),
+  spendByModel: () => request<any>("/spend/by-model"),
   launchd: () => request<any[]>("/launchd"),
   removeLaunchd: (label: string) =>
     request<any>("/launchd/remove", { method: "POST", body: JSON.stringify({ label }) }),

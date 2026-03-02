@@ -1,0 +1,657 @@
+.container {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.loading,
+.error,
+.offlineNotice {
+  padding: 24px;
+  border-radius: var(--radius-lg);
+  font-size: var(--font-size-sm);
+  text-align: center;
+}
+
+.loading {
+  color: var(--text-muted);
+}
+
+.error {
+  background: var(--red-dim);
+  color: var(--red);
+}
+
+.offlineNotice {
+  background: var(--yellow-dim);
+  color: var(--yellow);
+}
+
+/* ── Hero Row ─────────────────────────────── */
+
+.heroRow {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+
+.heroCard {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 24px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-panel);
+}
+
+.heroLabel {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.heroValue {
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+  line-height: 1;
+}
+
+.heroValueRow {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.heroDelta {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+}
+
+.deltaUp {
+  color: var(--red);
+  background: var(--red-dim);
+}
+
+.deltaDown {
+  color: var(--green);
+  background: var(--green-dim);
+}
+
+/* ── Card ─────────────────────────────────── */
+
+.card {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-panel);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.cardTitle {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+/* ── Main Chart ───────────────────────────── */
+
+.mainChart {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+  height: 300px;
+  padding: 24px;
+}
+
+.barCol {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  height: 100%;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  padding: 6px 4px;
+  transition: background var(--transition-fast);
+}
+
+.barCol:hover {
+  background: var(--bg-tertiary);
+}
+
+.barColActive {
+  background: var(--accent-primary-dim);
+}
+
+.barCost {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.barTrack {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.barFillWrap {
+  width: 55%;
+  max-width: 48px;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.barCacheRead {
+  background: var(--green);
+  opacity: 0.85;
+}
+
+.barCacheWrite {
+  background: var(--purple);
+  opacity: 0.75;
+}
+
+.barDirect {
+  background: var(--blue);
+  opacity: 0.85;
+}
+
+.barLabel {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.barLabelToday {
+  color: var(--text-accent);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* ── Legend ────────────────────────────────── */
+
+.legend {
+  display: flex;
+  gap: 16px;
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legendDotCacheRead,
+.legendDotCacheWrite,
+.legendDotDirect {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.legendDotCacheRead { background: var(--green); opacity: 0.85; }
+.legendDotCacheWrite { background: var(--purple); opacity: 0.75; }
+.legendDotDirect { background: var(--blue); opacity: 0.85; }
+
+/* ── Two Column ───────────────────────────── */
+
+.twoCol {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+/* ── Breakdown List ───────────────────────── */
+
+.breakdownList {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px 24px;
+}
+
+.costRow {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.costRowHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: var(--font-size-sm);
+}
+
+.costRowDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.costRowLabel {
+  color: var(--text-secondary);
+  flex: 1;
+}
+
+.costRowValue {
+  color: var(--text-primary);
+  font-weight: var(--font-weight-semibold);
+  min-width: 70px;
+  text-align: right;
+}
+
+.costRowPct {
+  color: var(--text-muted);
+  min-width: 50px;
+  text-align: right;
+  font-size: var(--font-size-xs);
+}
+
+.costRowBar {
+  height: 6px;
+  background: var(--bg-tertiary);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.costRowBarFill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.costRowTokens {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  padding-left: 18px;
+}
+
+/* ── Donut Chart ──────────────────────────── */
+
+.donutContainer {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  padding: 24px;
+}
+
+.donut {
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.donutHole {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: var(--bg-panel);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.donutTotal {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+  line-height: 1;
+}
+
+.donutLabel {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.donutLegend {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+}
+
+.donutLegendItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: var(--font-size-sm);
+}
+
+.donutLegendDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.donutLegendLabel {
+  color: var(--text-secondary);
+  flex: 1;
+}
+
+.donutLegendValue {
+  color: var(--text-primary);
+  font-weight: var(--font-weight-semibold);
+  min-width: 50px;
+  text-align: right;
+}
+
+.donutLegendPct {
+  color: var(--text-accent);
+  font-weight: var(--font-weight-medium);
+  min-width: 44px;
+  text-align: right;
+  font-size: var(--font-size-xs);
+}
+
+/* ── Cache Efficiency ─────────────────────── */
+
+.cacheContent {
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+}
+
+.cacheBar {
+  display: flex;
+  height: 14px;
+  border-radius: 7px;
+  overflow: hidden;
+  background: var(--bg-tertiary);
+}
+
+.cacheBarRead {
+  background: var(--green);
+  opacity: 0.85;
+  transition: width 0.3s ease;
+}
+
+.cacheBarWrite {
+  background: var(--purple);
+  opacity: 0.65;
+  transition: width 0.3s ease;
+}
+
+.cacheLabels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+}
+
+.cacheNote {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  margin-top: 12px;
+  line-height: 1.6;
+}
+
+/* ── Day Detail ───────────────────────────── */
+
+.dayDetail {
+  padding: 20px 24px;
+}
+
+.dayDetailHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.dayDetailTitle {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.dayDetailGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.dayDetailItem {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.dayDetailLabel {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.dayDetailValue {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-primary);
+}
+
+.emptyDetail {
+  padding: 48px 24px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+}
+
+/* ── Model Grid ──────────────────────────── */
+
+.modelGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.modelCard {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-panel);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.modelCardHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.modelName {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.modelStats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.modelStat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.modelStatLabel {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.modelStatValue {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.agentChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.agentChip {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  background: var(--bg-tertiary);
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+}
+
+/* ── Hero Variants ───────────────────────── */
+
+.heroValueGreen {
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--green);
+  line-height: 1;
+}
+
+.heroValueSm {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+  line-height: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Est Label ───────────────────────────── */
+
+.estLabel {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  font-weight: var(--font-weight-normal);
+  margin-left: 4px;
+}
+
+/* ── Free Badge ──────────────────────────── */
+
+.freeBadge {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--green);
+  background: var(--green-dim);
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+}
+
+/* ── Bar Chart (horizontal) ──────────────── */
+
+.barChartList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px 24px;
+}
+
+.barChartRow {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.barChartRowHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: var(--font-size-sm);
+}
+
+.barChartDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.barChartLabel {
+  color: var(--text-secondary);
+  flex: 1;
+}
+
+.barChartValue {
+  color: var(--text-primary);
+  font-weight: var(--font-weight-semibold);
+  min-width: 70px;
+  text-align: right;
+}
+
+.barChartPct {
+  color: var(--text-muted);
+  min-width: 50px;
+  text-align: right;
+  font-size: var(--font-size-xs);
+}
+
+.barChartTrack {
+  height: 6px;
+  background: var(--bg-tertiary);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.barChartFill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+/* ── Stacked Bar Colors ──────────────────── */
+
+.barSegment {
+  transition: height 0.3s ease;
+}
