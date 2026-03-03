@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { LogViewer } from "../shared/LogViewer.js";
 import { api } from "../../api/client.js";
+import { ScheduleEditor } from "./ScheduleEditor.js";
 import styles from "./ScriptModal.module.css";
 
 interface ScriptModalProps {
@@ -8,13 +9,16 @@ interface ScriptModalProps {
   schedule: string;
   description: string;
   command: string;
+  lineIndex: number;
+  onScheduleUpdated: () => void;
   onClose: () => void;
 }
 
-export function ScriptModal({ scriptName, schedule, description, command, onClose }: ScriptModalProps) {
+export function ScriptModal({ scriptName, schedule, description, command, lineIndex, onScheduleUpdated, onClose }: ScriptModalProps) {
   const [content, setContent] = useState<string | null>(null);
   const [scriptPath, setScriptPath] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [editorOpen, setEditorOpen] = useState(false);
 
   useEffect(() => {
     api.schedulerScript(scriptName).then((res) => {
@@ -33,9 +37,14 @@ export function ScriptModal({ scriptName, schedule, description, command, onClos
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
         <div className={styles.header}>
           <h3 className={styles.title}>{scriptName}</h3>
-          <button className={styles.closeBtn} onClick={onClose}>
-            Close
-          </button>
+          <div className={styles.headerActions}>
+            <button className={styles.changeScheduleBtn} onClick={() => setEditorOpen(true)}>
+              Change Schedule
+            </button>
+            <button className={styles.closeBtn} onClick={onClose}>
+              Close
+            </button>
+          </div>
         </div>
         <div className={styles.meta}>
           <div className={styles.metaRow}>
@@ -65,6 +74,18 @@ export function ScriptModal({ scriptName, schedule, description, command, onClos
           )}
         </div>
       </div>
+
+      {editorOpen && (
+        <ScheduleEditor
+          currentSchedule={schedule}
+          lineIndex={lineIndex}
+          onSave={() => {
+            setEditorOpen(false);
+            onScheduleUpdated();
+          }}
+          onClose={() => setEditorOpen(false)}
+        />
+      )}
     </div>
   );
 }

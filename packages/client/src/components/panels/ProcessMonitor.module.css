@@ -13,7 +13,7 @@
 }
 
 .killBtn {
-  padding: 2px 8px;
+  padding: 4px 12px;
   background: var(--red-dim);
   color: var(--red);
   border-radius: var(--radius-sm);

@@ -10,7 +10,7 @@
 
 .table th {
   text-align: left;
-  padding: 8px 12px;
+  padding: 14px 16px;
   color: var(--text-muted);
   font-weight: 500;
   font-size: var(--font-size-xs);
@@ -21,7 +21,7 @@
 }
 
 .table td {
-  padding: 8px 12px;
+  padding: 14px 16px;
   border-bottom: 1px solid var(--border-subtle);
   color: var(--text-secondary);
 }
@@ -36,5 +36,5 @@
 
 .compact th,
 .compact td {
-  padding: 4px 8px;
+  padding: 8px 12px;
 }

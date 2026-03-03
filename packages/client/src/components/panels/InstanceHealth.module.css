@@ -1,14 +1,14 @@
 .content {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 22px;
 }
 
 .gatewayCard {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px;
+  padding: 16px;
   background: var(--bg-tertiary);
   border-radius: var(--radius-md);
 }
@@ -16,7 +16,7 @@
 .gatewayHeader {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
 }
 
 .port {
@@ -27,7 +27,7 @@
 .gatewayActions {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
 }
 
 .pid {
@@ -37,7 +37,7 @@
 
 .restartBtn {
   font-size: var(--font-size-xs);
-  padding: 4px 10px;
+  padding: 6px 14px;
   border: 1px solid var(--border-primary);
   border-radius: var(--radius-sm);
   background: var(--bg-secondary);
@@ -57,7 +57,7 @@
 
 .restartToast {
   font-size: var(--font-size-xs);
-  padding: 6px 10px;
+  padding: 8px 14px;
   border-radius: var(--radius-sm);
   background: rgba(176, 128, 224, 0.15);
   color: var(--purple);
@@ -68,7 +68,7 @@
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
 }
 
 .agentsSection {
@@ -79,14 +79,14 @@
 .agentGrid {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
 .agentCard {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 12px;
+  padding: 12px 16px;
   background: var(--bg-tertiary);
   border-radius: var(--radius-sm);
 }

@@ -12,8 +12,8 @@
   background: var(--bg-secondary);
   border: 1px solid var(--border-primary);
   border-radius: var(--radius-lg);
-  padding: 28px;
-  max-width: 420px;
+  padding: 32px;
+  max-width: 520px;
   width: 90%;
   box-shadow: var(--shadow-elevated);
 }
@@ -21,25 +21,25 @@
 .title {
   font-size: var(--font-size-xl);
   font-weight: var(--font-weight-semibold);
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 
 .message {
   color: var(--text-secondary);
   font-size: var(--font-size-sm);
-  margin-bottom: 24px;
+  margin-bottom: 28px;
   line-height: 1.6;
 }
 
 .actions {
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
+  gap: 12px;
 }
 
 .cancelBtn,
 .confirmBtn {
-  padding: 8px 18px;
+  padding: 10px 22px;
   border-radius: var(--radius-sm);
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);

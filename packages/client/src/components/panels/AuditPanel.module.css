@@ -2,8 +2,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
-  padding: 32px 16px;
+  gap: 22px;
+  padding: 44px 22px;
 }
 
 .description {
@@ -15,7 +15,7 @@
 }
 
 .auditBtn {
-  padding: 10px 24px;
+  padding: 14px 32px;
   background: var(--blue);
   color: var(--bg-primary);
   border-radius: var(--radius-md);
@@ -41,11 +41,11 @@
 .content {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 22px;
 }
 
 .toast {
-  padding: 8px 12px;
+  padding: 12px 16px;
   background: var(--green-dim);
   color: var(--green);
   border-radius: var(--radius-sm);
@@ -63,7 +63,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 12px;
+  padding: 12px 16px;
   background: var(--bg-tertiary);
   border-radius: var(--radius-md) var(--radius-md) 0 0;
   border: 1px solid var(--border-primary);
@@ -77,11 +77,11 @@
 
 .planActions {
   display: flex;
-  gap: 8px;
+  gap: 12px;
 }
 
 .copyBtn {
-  padding: 4px 12px;
+  padding: 6px 16px;
   background: var(--bg-active);
   border: 1px solid var(--border-primary);
   border-radius: var(--radius-sm);
@@ -98,7 +98,7 @@
   background: var(--bg-primary);
   border: 1px solid var(--border-primary);
   border-radius: 0 0 var(--radius-md) var(--radius-md);
-  padding: 16px;
+  padding: 22px;
   font-size: var(--font-size-xs);
   line-height: 1.6;
   overflow-x: auto;
@@ -113,7 +113,7 @@
 .categories {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
 }
 
 .sectionTitle {
@@ -126,13 +126,13 @@
 .checkboxGroup {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 16px;
 }
 
 .checkbox {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   font-size: var(--font-size-sm);
   color: var(--text-secondary);
   cursor: pointer;
@@ -145,11 +145,11 @@
 /* Action buttons */
 .actionBar {
   display: flex;
-  gap: 8px;
+  gap: 12px;
 }
 
 .applyBtn {
-  padding: 8px 20px;
+  padding: 12px 28px;
   background: var(--green);
   color: var(--bg-primary);
   border-radius: var(--radius-sm);
@@ -168,7 +168,7 @@
 }
 
 .rerunBtn {
-  padding: 8px 16px;
+  padding: 12px 22px;
   background: var(--bg-tertiary);
   border: 1px solid var(--border-primary);
   border-radius: var(--radius-sm);
@@ -197,9 +197,9 @@
 .detailToggle {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   width: 100%;
-  padding: 8px 12px;
+  padding: 12px 16px;
   background: var(--bg-tertiary);
   font-size: var(--font-size-sm);
   color: var(--text-secondary);
@@ -212,30 +212,30 @@
 }
 
 .detailContent {
-  padding: 12px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
 }
 
 /* Config sync detail */
 .wsRow {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 6px 0;
+  gap: 16px;
+  padding: 8px 0;
 }
 
 .wsName {
   font-size: var(--font-size-sm);
   color: var(--text-primary);
-  min-width: 120px;
+  min-width: 160px;
   font-weight: 500;
 }
 
 .ruleChecks {
   display: flex;
-  gap: 4px;
+  gap: 6px;
   flex-wrap: wrap;
 }
 
@@ -248,14 +248,14 @@
 
 .statusTable th {
   text-align: left;
-  padding: 6px 10px;
+  padding: 8px 14px;
   color: var(--text-muted);
   border-bottom: 1px solid var(--border-subtle);
   font-weight: 500;
 }
 
 .statusTable td {
-  padding: 6px 10px;
+  padding: 8px 14px;
   border-bottom: 1px solid var(--border-subtle);
   color: var(--text-secondary);
 }
@@ -268,14 +268,14 @@
 /* Crontab detail */
 .cronEntry {
   display: flex;
-  gap: 12px;
-  padding: 4px 0;
+  gap: 16px;
+  padding: 6px 0;
   font-size: var(--font-size-xs);
 }
 
 .cronSchedule {
   color: var(--text-accent);
-  min-width: 100px;
+  min-width: 130px;
   font-weight: 500;
 }
 
@@ -286,18 +286,18 @@
 
 .cronNew {
   background: var(--green-dim);
-  padding: 4px 8px;
+  padding: 6px 12px;
   border-radius: var(--radius-sm);
 }
 
 .cronLabel {
   color: var(--green);
   font-weight: 600;
-  min-width: 50px;
+  min-width: 65px;
 }
 
 .warning {
-  padding: 6px 10px;
+  padding: 8px 14px;
   background: var(--red-dim);
   color: var(--red);
   border-radius: var(--radius-sm);
@@ -308,7 +308,7 @@
 .issueRow {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   font-size: var(--font-size-sm);
   color: var(--text-secondary);
 }

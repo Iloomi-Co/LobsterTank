@@ -22,7 +22,8 @@ body {
   font-weight: var(--font-weight-normal);
   color: var(--text-primary);
   background: var(--bg-primary);
-  line-height: 1.6;
+  line-height: 1.55;
+  letter-spacing: -0.01em;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow: hidden;
@@ -46,15 +47,17 @@ button {
   background: none;
   color: inherit;
   font-size: inherit;
+  letter-spacing: inherit;
 }
 
 input, select, textarea {
   font-family: var(--font-sans);
+  letter-spacing: inherit;
 }
 
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 4px;
+  height: 4px;
 }
 
 ::-webkit-scrollbar-track {
@@ -63,7 +66,7 @@ input, select, textarea {
 
 ::-webkit-scrollbar-thumb {
   background: var(--border-primary);
-  border-radius: 3px;
+  border-radius: 2px;
 }
 
 ::-webkit-scrollbar-thumb:hover {

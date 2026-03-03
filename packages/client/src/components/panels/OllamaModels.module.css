@@ -1,22 +1,22 @@
 .list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
 }
 
 .modelCard {
-  padding: 10px 12px;
+  padding: 14px 16px;
   background: var(--bg-tertiary);
   border-radius: var(--radius-sm);
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
 .modelHeader {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
 }
 
 .modelName {
@@ -27,6 +27,6 @@
 
 .modelMeta {
   display: flex;
-  gap: 6px;
+  gap: 8px;
   flex-wrap: wrap;
 }

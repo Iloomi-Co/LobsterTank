@@ -2,6 +2,7 @@ import { useState } from "react";
 import { DataTable } from "../shared/DataTable.js";
 import { StatusDot } from "../shared/StatusDot.js";
 import { Badge } from "../shared/Badge.js";
+import { cronToHuman } from "../../utils/cron.js";
 import styles from "./CrontabSection.module.css";
 
 interface CrontabEntry {
@@ -35,7 +36,6 @@ interface CrontabSectionProps {
   onToggle: (lineIndex: number, enabled: boolean) => void;
   onViewLogs: (scriptName: string) => void;
   onViewScript: (entry: CrontabEntry) => void;
-  onEditCrontab: () => void;
   onRunScript: (scriptName: string) => Promise<void>;
 }
 
@@ -45,77 +45,6 @@ const STATUS_MAP: Record<string, "online" | "offline" | "warning"> = {
   missing: "warning",
 };
 
-const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-const SHORT_DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-
-function formatHour(h: number): string {
-  if (h === 0) return "12:00 AM";
-  if (h < 12) return `${h}:00 AM`;
-  if (h === 12) return "12:00 PM";
-  return `${h - 12}:00 PM`;
-}
-
-function cronToHuman(schedule: string): string {
-  if (schedule.startsWith("@")) {
-    const keyword: Record<string, string> = {
-      "@reboot": "On system boot",
-      "@yearly": "Once a year",
-      "@annually": "Once a year",
-      "@monthly": "Once a month",
-      "@weekly": "Once a week",
-      "@daily": "Once a day",
-      "@midnight": "Once a day",
-      "@hourly": "Every hour",
-    };
-    return keyword[schedule] ?? schedule;
-  }
-
-  const parts = schedule.split(/\s+/);
-  if (parts.length !== 5) return schedule;
-  const [min, hour, dom, mon, dow] = parts;
-
-  // Every N minutes: */N * * * *
-  if (min.startsWith("*/") && hour === "*" && dom === "*" && mon === "*" && dow === "*") {
-    const n = parseInt(min.slice(2), 10);
-    return n === 1 ? "Every minute" : `Every ${n} minutes`;
-  }
-
-  // Every N hours: 0 */N * * *
-  if (min === "0" && hour.startsWith("*/") && dom === "*" && mon === "*" && dow === "*") {
-    const n = parseInt(hour.slice(2), 10);
-    return n === 1 ? "Every hour" : `Every ${n} hours`;
-  }
-
-  // Parse hours list (e.g. "6,15")
-  const hours = hour !== "*" ? hour.split(",").map((h) => parseInt(h, 10)) : null;
-  const timeStr = hours ? hours.map(formatHour).join(", ") : null;
-
-  // Specific time, every day: M H * * *
-  if (hours && dom === "*" && mon === "*" && dow === "*") {
-    return `Daily at ${timeStr}`;
-  }
-
-  // Day-of-week patterns
-  if (hours && dom === "*" && mon === "*" && dow !== "*") {
-    let dayStr: string;
-    if (dow === "1-5") {
-      dayStr = "Weekdays";
-    } else if (dow === "0,6" || dow === "6,0") {
-      dayStr = "Weekends";
-    } else if (dow.includes(",")) {
-      dayStr = dow.split(",").map((d) => SHORT_DAYS[parseInt(d, 10)] ?? d).join(", ");
-    } else if (dow.includes("-")) {
-      const [start, end] = dow.split("-").map((d) => parseInt(d, 10));
-      dayStr = `${SHORT_DAYS[start]}–${SHORT_DAYS[end]}`;
-    } else {
-      const d = parseInt(dow, 10);
-      dayStr = (DAY_NAMES[d] ?? dow) + "s";
-    }
-    return `${dayStr} at ${timeStr}`;
-  }
-
-  return schedule;
-}
 
 const SPARK_CLASS: Record<string, string> = {
   success: styles.sparkSuccess,
@@ -144,7 +73,7 @@ function RunSparkline({ history }: { history: { timestamp: string; status: strin
   );
 }
 
-export function CrontabSection({ entries, pathLine, onToggle, onViewLogs, onViewScript, onEditCrontab, onRunScript }: CrontabSectionProps) {
+export function CrontabSection({ entries, pathLine, onToggle, onViewLogs, onViewScript, onRunScript }: CrontabSectionProps) {
   const [runningScript, setRunningScript] = useState<string | null>(null);
   const agentEntries = entries.filter((e) => e.category === "agent");
   const systemEntries = entries.filter((e) => e.category === "system");
@@ -295,9 +224,6 @@ export function CrontabSection({ entries, pathLine, onToggle, onViewLogs, onView
             Agent Automations
             <Badge label={`${agentActive}/${agentEntries.length}`} variant="green" />
           </div>
-          <button className={styles.editBtn} onClick={onEditCrontab}>
-            Edit Crontab
-          </button>
         </div>
         <div className={styles.body}>
           <DataTable columns={baseColumns} data={agentEntries} rowKey={(e) => String(e.lineIndex)} onRowClick={onViewScript} compact />

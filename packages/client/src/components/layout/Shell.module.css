@@ -12,14 +12,14 @@
 }
 
 .sidebar {
-  width: 64px;
+  width: 80px;
   background: var(--bg-secondary);
-  border-right: 1px solid var(--border-primary);
-  padding: 16px 0;
+  border-right: 1px solid var(--border-subtle);
+  padding: 24px 0;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   overflow-y: auto;
   flex-shrink: 0;
 }
@@ -27,9 +27,9 @@
 .grid {
   flex: 1;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(440px, 1fr));
-  gap: 24px;
-  padding: 24px;
+  grid-template-columns: repeat(auto-fill, minmax(560px, 1fr));
+  gap: 32px;
+  padding: 36px;
   overflow-y: auto;
   align-content: start;
 }

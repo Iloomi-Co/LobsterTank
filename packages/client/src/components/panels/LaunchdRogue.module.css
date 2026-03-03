@@ -1,14 +1,14 @@
 .list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
 }
 
 .jobCard {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 12px;
+  padding: 14px 16px;
   background: var(--bg-tertiary);
   border-radius: var(--radius-sm);
 }
@@ -16,7 +16,7 @@
 .jobInfo {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
 
 .jobLabel {
@@ -28,7 +28,7 @@
 .jobMeta {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
 }
 
 .pid {
@@ -37,7 +37,7 @@
 }
 
 .removeBtn {
-  padding: 4px 10px;
+  padding: 6px 14px;
   background: var(--red-dim);
   color: var(--red);
   border-radius: var(--radius-sm);

@@ -86,10 +86,10 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ lineIndex, enabled }),
     }),
-  schedulerEditCrontab: (content: string) =>
-    request<any>("/scheduler/crontab/edit", {
+  schedulerUpdateSchedule: (lineIndex: number, schedule: string) =>
+    request<any>("/scheduler/crontab/update-schedule", {
       method: "POST",
-      body: JSON.stringify({ content }),
+      body: JSON.stringify({ lineIndex, schedule }),
     }),
   schedulerRemoveOcCron: (id: string) =>
     request<any>("/scheduler/oc-cron/remove", {

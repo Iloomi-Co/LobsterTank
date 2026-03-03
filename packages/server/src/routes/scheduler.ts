@@ -564,29 +564,61 @@ schedulerRoutes.post("/crontab/toggle", async (req, res) => {
   }
 });
 
-// --- POST /crontab/edit ---
+// --- POST /crontab/update-schedule ---
 
-schedulerRoutes.post("/crontab/edit", async (req, res) => {
-  const { content } = req.body;
-  if (typeof content !== "string") {
-    res.status(400).json({ ok: false, error: "Invalid content", timestamp: new Date().toISOString() });
+const SCHEDULE_RE = /^(@\w+|[\d*,\/-]+\s+[\d*,\/-]+\s+[\d*,\/-]+\s+[\d*,\/-]+\s+[\d*,\/-]+)$/;
+const CRON_LINE_RE = /^(@\w+|[\d*,\/-]+\s+[\d*,\/-]+\s+[\d*,\/-]+\s+[\d*,\/-]+\s+[\d*,\/-]+)\s+(.+)$/;
+
+schedulerRoutes.post("/crontab/update-schedule", async (req, res) => {
+  const { lineIndex, schedule } = req.body;
+  if (typeof lineIndex !== "number" || typeof schedule !== "string") {
+    res.status(400).json({ ok: false, error: "Invalid parameters", timestamp: new Date().toISOString() });
+    return;
+  }
+
+  if (!SCHEDULE_RE.test(schedule.trim())) {
+    res.status(400).json({ ok: false, error: "Invalid cron schedule format", timestamp: new Date().toISOString() });
     return;
   }
 
   try {
+    const result = await safeExec("crontab", ["-l"]);
+    if (result.exitCode !== 0) {
+      res.json({ ok: false, error: "Failed to read crontab", timestamp: new Date().toISOString() });
+      return;
+    }
+
+    const lines = result.stdout.split("\n");
+    if (lineIndex < 0 || lineIndex >= lines.length) {
+      res.status(400).json({ ok: false, error: "Invalid line index", timestamp: new Date().toISOString() });
+      return;
+    }
+
+    const rawLine = lines[lineIndex];
+    const isPaused = rawLine.trimStart().startsWith("#");
+    const content = isPaused ? rawLine.replace(/^(\s*)#\s*/, "$1") : rawLine;
+
+    const match = content.match(CRON_LINE_RE);
+    if (!match) {
+      res.status(400).json({ ok: false, error: "Target line is not a cron entry", timestamp: new Date().toISOString() });
+      return;
+    }
+
+    const command = match[2];
+    const newLine = isPaused ? `# ${schedule.trim()} ${command}` : `${schedule.trim()} ${command}`;
+    lines[lineIndex] = newLine;
+
     const tmpFile = join(tmpdir(), `lobstertank-cron-${Date.now()}`);
-    await writeFile(tmpFile, content);
-    const result = await safeExec("crontab", [tmpFile]);
+    await writeFile(tmpFile, lines.join("\n"));
+    const installResult = await safeExec("crontab", [tmpFile]);
     await unlink(tmpFile).catch(() => {});
 
-    await logAction("CRONTAB_EDIT", "Full crontab replaced");
+    await logAction("CRONTAB_UPDATE_SCHEDULE", `Line ${lineIndex}: schedule → ${schedule.trim()}`);
 
-    // Read back the installed crontab
-    const readBack = await safeExec("crontab", ["-l"]);
     res.json({
-      ok: result.exitCode === 0,
-      data: { raw: readBack.stdout },
-      error: result.exitCode !== 0 ? result.stderr : undefined,
+      ok: installResult.exitCode === 0,
+      data: { lineIndex, schedule: schedule.trim() },
+      error: installResult.exitCode !== 0 ? installResult.stderr : undefined,
       timestamp: new Date().toISOString(),
     });
   } catch (e: any) {

@@ -1,16 +1,16 @@
 .list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 14px;
 }
 
 .agentCard {
-  padding: 12px;
+  padding: 16px;
   background: var(--bg-tertiary);
   border-radius: var(--radius-md);
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
 }
 
 .cardHeader {
@@ -28,18 +28,18 @@
 .modelInfo {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
 
 .modelRow {
   display: flex;
-  gap: 8px;
+  gap: 12px;
   font-size: var(--font-size-xs);
 }
 
 .modelLabel {
   color: var(--text-muted);
-  min-width: 60px;
+  min-width: 80px;
 }
 
 .modelValue {
@@ -49,6 +49,6 @@
 .workspace {
   font-size: var(--font-size-xs);
   color: var(--text-muted);
-  padding-top: 4px;
+  padding-top: 6px;
   border-top: 1px solid var(--border-subtle);
 }

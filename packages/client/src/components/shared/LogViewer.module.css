@@ -2,16 +2,16 @@
   background: var(--bg-primary);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
-  padding: 8px 0;
+  padding: 10px 0;
   font-size: var(--font-size-xs);
-  max-height: 300px;
+  max-height: 400px;
   overflow-y: auto;
   margin: 0;
 }
 
 .line {
   display: flex;
-  padding: 1px 12px;
+  padding: 2px 16px;
   line-height: 1.6;
 }
 
@@ -21,9 +21,9 @@
 
 .lineNum {
   color: var(--text-muted);
-  min-width: 32px;
+  min-width: 48px;
   text-align: right;
-  margin-right: 12px;
+  margin-right: 16px;
   user-select: none;
 }
 

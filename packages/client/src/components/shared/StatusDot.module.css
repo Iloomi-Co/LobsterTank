@@ -1,29 +1,26 @@
 .wrapper {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
 }
 
 .dot {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
   flex-shrink: 0;
 }
 
 .online {
   background: var(--green);
-  box-shadow: 0 0 6px var(--green);
 }
 
 .offline {
   background: var(--red);
-  box-shadow: 0 0 6px var(--red);
 }
 
 .warning {
   background: var(--yellow);
-  box-shadow: 0 0 6px var(--yellow);
 }
 
 .unknown {

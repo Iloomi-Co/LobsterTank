@@ -2,59 +2,56 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 24px;
-  height: 56px;
+  padding: 0 32px;
+  height: 72px;
   background: var(--bg-secondary);
-  border-bottom: 1px solid var(--border-primary);
+  border-bottom: 1px solid var(--border-subtle);
   flex-shrink: 0;
 }
 
 .left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
 }
 
 .logo {
   font-size: var(--font-size-xl);
   font-weight: var(--font-weight-bold);
   color: var(--text-primary);
+  letter-spacing: -0.03em;
 }
 
 .subtitle {
   font-size: var(--font-size-xs);
   color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.08em;
   font-weight: var(--font-weight-medium);
 }
 
 .nav {
   display: flex;
   gap: 2px;
-  margin-left: 20px;
-  padding: 4px;
-  background: var(--bg-tertiary);
-  border-radius: var(--radius-md);
+  margin-left: 28px;
 }
 
 .navTab {
-  padding: 6px 14px;
+  padding: 8px 18px;
   border-radius: var(--radius-sm);
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
-  color: var(--text-secondary);
+  color: var(--text-muted);
   transition: all var(--transition-fast);
 }
 
 .navTab:hover {
   color: var(--text-primary);
-  background: var(--bg-hover);
 }
 
 .navActive {
-  background: var(--accent-primary-dim);
-  color: var(--text-accent);
+  background: var(--text-primary);
+  color: var(--bg-primary);
   font-weight: var(--font-weight-semibold);
 }
 
@@ -64,28 +61,27 @@
 }
 
 .tab {
-  padding: 6px 14px;
+  padding: 8px 18px;
   border-radius: var(--radius-sm);
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
-  color: var(--text-secondary);
+  color: var(--text-muted);
   transition: all var(--transition-fast);
 }
 
 .tab:hover {
-  background: var(--bg-hover);
   color: var(--text-primary);
 }
 
 .tab.active {
-  background: var(--accent-primary-dim);
-  color: var(--text-accent);
+  background: var(--text-primary);
+  color: var(--bg-primary);
 }
 
 .right {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
 }
 
 .timestamp {
@@ -95,19 +91,18 @@
 
 .themeBtn,
 .refreshBtn {
-  padding: 6px 14px;
+  padding: 8px 18px;
   background: transparent;
   border: 1px solid var(--border-primary);
   border-radius: var(--radius-sm);
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
-  color: var(--text-secondary);
+  color: var(--text-muted);
   transition: all var(--transition-fast);
 }
 
 .themeBtn:hover,
 .refreshBtn:hover {
-  background: var(--bg-hover);
   color: var(--text-primary);
   border-color: var(--text-muted);
 }

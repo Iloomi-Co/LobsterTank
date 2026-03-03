@@ -5,7 +5,6 @@ import { CrontabSection } from "./CrontabSection.js";
 import { ConfirmDialog } from "../shared/ConfirmDialog.js";
 import { LogModal } from "./LogModal.js";
 import { ScriptModal } from "./ScriptModal.js";
-import { CrontabEditor } from "./CrontabEditor.js";
 import styles from "./TaskScheduler.module.css";
 
 interface SchedulerState {
@@ -68,8 +67,8 @@ export function TaskScheduler() {
     schedule: string;
     description: string;
     command: string;
+    lineIndex: number;
   } | null>(null);
-  const [editorOpen, setEditorOpen] = useState(false);
   const [ocExpanded, setOcExpanded] = useState(false);
   const [launchdExpanded, setLaunchdExpanded] = useState(false);
   const [confirmRemoveOc, setConfirmRemoveOc] = useState<string | null>(null);
@@ -98,11 +97,6 @@ export function TaskScheduler() {
 
   const handleRunScript = async (scriptName: string) => {
     await api.schedulerRunScript(scriptName);
-    refresh();
-  };
-
-  const handleEditorSave = () => {
-    setEditorOpen(false);
     refresh();
   };
 
@@ -236,8 +230,8 @@ export function TaskScheduler() {
           schedule: entry.schedule,
           description: entry.description,
           command: entry.command,
+          lineIndex: entry.lineIndex,
         })}
-        onEditCrontab={() => setEditorOpen(true)}
         onRunScript={handleRunScript}
       />
 
@@ -290,15 +284,12 @@ export function TaskScheduler() {
           schedule={scriptModal.schedule}
           description={scriptModal.description}
           command={scriptModal.command}
+          lineIndex={scriptModal.lineIndex}
+          onScheduleUpdated={() => {
+            setScriptModal(null);
+            refresh();
+          }}
           onClose={() => setScriptModal(null)}
-        />
-      )}
-
-      {editorOpen && (
-        <CrontabEditor
-          initialContent={data.crontab.raw}
-          onSave={handleEditorSave}
-          onClose={() => setEditorOpen(false)}
         />
       )}
     </div>

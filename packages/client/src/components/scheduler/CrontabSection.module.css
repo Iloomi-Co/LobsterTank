@@ -1,6 +1,6 @@
 .section {
   background: var(--bg-panel);
-  border: 1px solid var(--border-primary);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-panel);
   overflow: hidden;
@@ -10,36 +10,36 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px;
+  padding: 20px 28px;
   border-bottom: 1px solid var(--border-subtle);
-  background: var(--bg-secondary);
+  background: transparent;
 }
 
 .sectionTitle {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   font-size: var(--font-size-md);
   font-weight: 600;
   color: var(--text-primary);
+  letter-spacing: -0.01em;
 }
 
 .body {
-  padding: 12px 16px;
+  padding: 20px 28px;
 }
 
 .pathLine {
-  margin-top: 8px;
-  padding: 6px 10px;
+  margin-top: 10px;
+  padding: 8px 14px;
   background: var(--bg-tertiary);
   border-radius: var(--radius-sm);
   font-size: var(--font-size-xs);
   color: var(--text-muted);
-  font-family: var(--font-mono);
 }
 
 .actionBtn {
-  padding: 3px 10px;
+  padding: 6px 14px;
   background: var(--bg-tertiary);
   border: 1px solid var(--border-primary);
   border-radius: var(--radius-sm);
@@ -55,7 +55,7 @@
 }
 
 .editBtn {
-  padding: 4px 12px;
+  padding: 6px 16px;
   background: var(--bg-tertiary);
   border: 1px solid var(--border-primary);
   border-radius: var(--radius-sm);
@@ -72,7 +72,7 @@
 
 .actions {
   display: flex;
-  gap: 4px;
+  gap: 6px;
 }
 
 .systemSection .sectionTitle {
@@ -82,16 +82,15 @@
 .scriptCell {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
 }
 
 .codeLink {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 1px 4px;
-  font-size: 10px;
-  font-family: var(--font-mono);
+  padding: 2px 6px;
+  font-size: var(--font-size-xs);
   color: var(--text-muted);
   background: var(--bg-tertiary);
   border: 1px solid var(--border-subtle);
@@ -112,12 +111,12 @@
 .sparkline {
   display: flex;
   align-items: center;
-  gap: 3px;
+  gap: 4px;
 }
 
 .sparkDot {
-  width: 8px;
-  height: 8px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
   flex-shrink: 0;
 }
@@ -135,7 +134,7 @@
 }
 
 .sparkNoData {
-  border: 1.5px solid var(--border-primary);
+  border: 2px solid var(--border-primary);
   background: transparent;
 }
 
@@ -145,7 +144,6 @@
 }
 
 .costCell {
-  font-family: var(--font-mono);
   font-size: var(--font-size-xs);
   color: var(--text-muted);
 }
@@ -180,6 +178,5 @@
   display: inline;
   font-size: var(--font-size-xs);
   color: var(--text-muted);
-  font-family: var(--font-mono);
-  margin-left: 6px;
+  margin-left: 8px;
 }
