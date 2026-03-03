@@ -103,6 +103,11 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ label }),
     }),
+  schedulerRunScript: (scriptName: string) =>
+    request<{ scriptName: string; exitCode: number; output: string }>("/scheduler/run-script", {
+      method: "POST",
+      body: JSON.stringify({ scriptName }),
+    }),
   schedulerLogs: (scriptName: string) =>
     request<{ content: string; lines: number }>(`/scheduler/logs/${encodeURIComponent(scriptName)}`),
   schedulerScript: (scriptName: string) =>

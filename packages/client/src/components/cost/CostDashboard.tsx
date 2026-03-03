@@ -224,14 +224,15 @@ export function CostDashboard() {
       <div className={styles.heroRow}>
         <div className={styles.heroCard}>
           <span className={styles.heroLabel}>7-Day Total</span>
-          <span className={styles.heroValue}>{totals ? formatCost(totals.totalCost) : "--"}</span>
+          <span className={styles.heroValue}>
+            {modelData ? formatCost(modelData.totalEstimatedCost) : totals ? formatCost(totals.totalCost) : "--"}
+          </span>
         </div>
         <div className={styles.heroCard}>
           <span className={styles.heroLabel}>Local Savings</span>
           <span className={styles.heroValueGreen}>
             {modelData ? formatCost(modelData.localSavings) : "--"}
           </span>
-          <span className={styles.estLabel}>(est.)</span>
         </div>
         <div className={styles.heroCard}>
           <span className={styles.heroLabel}>Most Active Model</span>
@@ -267,25 +268,22 @@ export function CostDashboard() {
                   <span className={styles.modelStatLabel}>Cost</span>
                   <span className={styles.modelStatValue}>
                     {m.isLocal ? "FREE" : formatCost(m.estimatedCost)}
-                    {!m.isLocal && <span className={styles.estLabel}>(est.)</span>}
                   </span>
                 </div>
                 <div className={styles.modelStat}>
-                  <span className={styles.modelStatLabel}>Invocations</span>
+                  <span className={styles.modelStatLabel}>Messages</span>
                   <span className={styles.modelStatValue}>{m.invocations}</span>
                 </div>
                 <div className={styles.modelStat}>
                   <span className={styles.modelStatLabel}>Input Tokens</span>
                   <span className={styles.modelStatValue}>
                     {formatTokens(m.estimatedInputTokens)}
-                    <span className={styles.estLabel}>(est.)</span>
                   </span>
                 </div>
                 <div className={styles.modelStat}>
                   <span className={styles.modelStatLabel}>Output Tokens</span>
                   <span className={styles.modelStatValue}>
                     {formatTokens(m.estimatedOutputTokens)}
-                    <span className={styles.estLabel}>(est.)</span>
                   </span>
                 </div>
               </div>
@@ -313,7 +311,7 @@ export function CostDashboard() {
       {models.filter((m) => m.invocations > 0).length > 0 && (
         <div className={styles.card}>
           <div className={styles.cardHeader}>
-            <h3 className={styles.cardTitle}>Cost by Model<span className={styles.estLabel}>(est.)</span></h3>
+            <h3 className={styles.cardTitle}>Cost by Model</h3>
           </div>
           <div className={styles.barChartList}>
             {models
@@ -350,7 +348,7 @@ export function CostDashboard() {
       {modelDaily.length > 0 && (
         <div className={styles.card}>
           <div className={styles.cardHeader}>
-            <h3 className={styles.cardTitle}>Daily Spend by Model<span className={styles.estLabel}>(est.)</span></h3>
+            <h3 className={styles.cardTitle}>Daily Spend by Model</h3>
             <div className={styles.legend}>
               {allModelNames.slice(0, 5).map((name) => {
                 const m = models.find((x) => x.model === name);
@@ -408,7 +406,7 @@ export function CostDashboard() {
         {/* Token Distribution by Model (Donut) */}
         <div className={styles.card}>
           <div className={styles.cardHeader}>
-            <h3 className={styles.cardTitle}>Tokens by Model<span className={styles.estLabel}>(est.)</span></h3>
+            <h3 className={styles.cardTitle}>Tokens by Model</h3>
           </div>
           <div className={styles.donutContainer}>
             <div className={styles.donut} style={{ background: donutGradient }}>
@@ -513,7 +511,7 @@ export function CostDashboard() {
             {selectedDayModel && Object.keys(selectedDayModel.models).length > 0 && (
               <>
                 <div style={{ marginTop: 16, borderTop: "1px solid var(--border-subtle)", paddingTop: 12 }}>
-                  <span className={styles.dayDetailLabel}>Model Costs<span className={styles.estLabel}>(est.)</span></span>
+                  <span className={styles.dayDetailLabel}>Model Costs</span>
                 </div>
                 <div className={styles.dayDetailGrid} style={{ marginTop: 8 }}>
                   {Object.entries(selectedDayModel.models).map(([model, cost]) => {

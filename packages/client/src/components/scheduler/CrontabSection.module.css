@@ -74,3 +74,112 @@
   display: flex;
   gap: 4px;
 }
+
+.systemSection .sectionTitle {
+  color: var(--text-secondary);
+}
+
+.scriptCell {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.codeLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1px 4px;
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  line-height: 1;
+  opacity: 0.5;
+  transition: all var(--transition-fast);
+}
+
+.codeLink:hover {
+  opacity: 1;
+  color: var(--text-primary);
+  border-color: var(--border-primary);
+  background: var(--bg-hover);
+}
+
+.sparkline {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.sparkDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.sparkSuccess {
+  background: var(--green);
+}
+
+.sparkFailure {
+  background: var(--red);
+}
+
+.sparkSkipped {
+  background: var(--text-muted);
+}
+
+.sparkNoData {
+  border: 1.5px solid var(--border-primary);
+  background: transparent;
+}
+
+.sparkEmpty {
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.costCell {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+}
+
+.costDash {
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.costFree {
+  font-size: var(--font-size-xs);
+  color: var(--green);
+  font-weight: 600;
+}
+
+.runBtn {
+  color: var(--green);
+  border-color: var(--green);
+}
+
+.runBtn:hover:not(:disabled) {
+  background: var(--green);
+  color: var(--bg-primary);
+}
+
+.runBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.agentBadge {
+  display: inline;
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  margin-left: 6px;
+}

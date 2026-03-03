@@ -142,6 +142,20 @@ export interface SchedulerCrontabEntry {
   logFile: string | null;
   lastRun: string | null;
   status: "active" | "paused" | "missing";
+  category: "agent" | "system";
+  scriptPath: string;
+  runHistory: { timestamp: string; status: "success" | "failure" | "skipped" }[];
+  costEstimate: {
+    lastRunCost: number | null;
+    weeklyTotal: number | null;
+    runsThisWeek: number;
+  } | null;
+  registrationMeta?: {
+    agent: string;
+    description: string;
+    pauseFile: string;
+    preCheck: string;
+  };
 }
 
 export interface SchedulerOcCron {
@@ -172,5 +186,10 @@ export interface SchedulerState {
   launchd: {
     entries: SchedulerLaunchdEntry[];
     breadcrumbExists: boolean;
+  };
+  budgetSummary: {
+    weeklyTotal: number;
+    dailyAverage: number;
+    estimatedMonthly: number;
   };
 }

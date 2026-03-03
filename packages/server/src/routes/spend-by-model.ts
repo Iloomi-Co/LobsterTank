@@ -1,200 +1,73 @@
 import { Router } from "express";
+import { join } from "path";
 import type { ApiResponse, ModelSpendEntry, DailyModelSpend, ModelSpendResponse } from "../types/index.js";
-import { readJsonFile, readTextFile, listDir } from "../lib/file-reader.js";
+import { readTextFile, listDir } from "../lib/file-reader.js";
 import { safeExec } from "../lib/exec.js";
-import { OC_CONFIG, OC_LOGS_DIR } from "../config.js";
+import { OC_HOME } from "../config.js";
 
 export const spendByModelRoutes = Router();
 
-// ── Pricing per million tokens ──────────────────────────
-const PRICING: Record<string, { input: number; output: number }> = {
-  "sonnet-4-5": { input: 3.0, output: 15.0 },
-  "sonnet-4-6": { input: 3.0, output: 15.0 },
-  "haiku-4-5":  { input: 0.25, output: 1.25 },
-  "haiku-4-6":  { input: 0.25, output: 1.25 },
-  "opus-4-5":   { input: 15.0, output: 75.0 },
-  "opus-4-6":   { input: 15.0, output: 75.0 },
-};
-
-const SONNET_PRICING = PRICING["sonnet-4-5"];
-
-// ── Token estimates per invocation type ─────────────────
-const TOKEN_ESTIMATES: Record<string, { input: number; output: number }> = {
-  poller:    { input: 400,  output: 100 },
-  processor: { input: 2000, output: 3000 },
-  portfolio: { input: 3000, output: 5000 },
-  default:   { input: 1500, output: 2000 },
-};
+const AGENTS_DIR = join(OC_HOME, "agents");
 
 // ── Helpers ─────────────────────────────────────────────
 
-function normalizeModel(raw: string | undefined): string {
-  if (!raw) return "unknown";
-  let m = raw.toLowerCase().trim();
-  m = m.replace(/^claude-/, "");
-  // Handle provider/model format like "anthropic/sonnet-4-5"
-  if (m.includes("/")) {
-    const parts = m.split("/");
-    m = parts[parts.length - 1];
-  }
-  return m;
-}
+const SONNET_PRICING = { input: 3.0, output: 15.0 }; // per million tokens
 
-function detectProvider(model: string, raw: string | undefined): string {
-  if (!raw) return "anthropic";
-  const lower = (raw ?? "").toLowerCase();
-  if (lower.includes("ollama") || lower.includes("qwen") || lower.includes("llama") || lower.includes("mistral") || lower.includes("deepseek")) {
+function detectProvider(model: string): string {
+  const lower = model.toLowerCase();
+  if (lower.includes("qwen") || lower.includes("llama") || lower.includes("mistral") || lower.includes("deepseek") || lower.includes("kimi") || lower.includes("minimax") || lower.includes("glm")) {
     return "ollama";
   }
-  if (lower.includes("openai") || lower.includes("gpt")) return "openai";
+  if (lower.includes("gpt") || lower.includes("o1") || lower.includes("o3") || lower.includes("o4")) return "openai";
   return "anthropic";
 }
 
-function isLocalModel(provider: string): boolean {
+function isLocalProvider(provider: string): boolean {
   return provider === "ollama";
-}
-
-function getPricing(model: string): { input: number; output: number } {
-  if (PRICING[model]) return PRICING[model];
-  // Fuzzy match: if model contains a known key
-  for (const [key, price] of Object.entries(PRICING)) {
-    if (model.includes(key)) return price;
-  }
-  // Default to sonnet pricing for unknown cloud models
-  return SONNET_PRICING;
 }
 
 function computeCost(inputTokens: number, outputTokens: number, pricing: { input: number; output: number }): number {
   return (inputTokens * pricing.input + outputTokens * pricing.output) / 1_000_000;
 }
 
-function getInvocationType(agentId: string): string {
-  const lower = agentId.toLowerCase();
-  if (lower.includes("poll") || lower.includes("checker") || lower.includes("email-check")) return "poller";
-  if (lower.includes("process") || lower.includes("handler") || lower.includes("responder")) return "processor";
-  if (lower.includes("portfolio")) return "portfolio";
-  return "default";
+function getLocalDate(isoTimestamp: string): string {
+  // Convert UTC timestamp to local date string (YYYY-MM-DD)
+  const d = new Date(isoTimestamp);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-function getDateDaysAgo(daysAgo: number): string {
+function getLocalDateDaysAgo(daysAgo: number): string {
   const d = new Date();
   d.setDate(d.getDate() - daysAgo);
-  return d.toISOString().slice(0, 10);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
 // ── Route ───────────────────────────────────────────────
 
 spendByModelRoutes.get("/", async (_req, res) => {
   try {
-    const last30dates = new Set<string>();
-    for (let i = 0; i < 30; i++) {
-      last30dates.add(getDateDaysAgo(i));
-    }
+    const cutoffDate = getLocalDateDaysAgo(7);
 
-    // Three concurrent data fetches
-    const [agentConfigResult, logDirResult, ollamaResult] = await Promise.all([
-      // 1. Agent config → model map
-      readJsonFile<any>(OC_CONFIG),
-      // 2. Cron log files list
-      listDir(OC_LOGS_DIR),
-      // 3. Ollama models
-      safeExec("ollama", ["list"], { timeout: 5000 }).catch(() => ({
-        stdout: "", stderr: "", exitCode: 1,
-      })),
-    ]);
+    // Discover all agent session directories
+    const { entries: agentDirs } = await listDir(AGENTS_DIR);
 
-    // ── Step 1: Build agent→model map ───────────────────
-    const agentModelMap = new Map<string, { model: string; provider: string; raw: string }>();
-    const ocConfig = agentConfigResult.data;
-    if (ocConfig) {
-      const agentList = ocConfig.agents?.list ?? [];
-      const defaults = ocConfig.agents?.defaults ?? {};
-      const defaultModel = defaults.model?.primary ?? "sonnet-4-5";
-
-      for (const agent of agentList) {
-        const rawModel = agent.model?.primary ?? defaultModel;
-        const model = normalizeModel(rawModel);
-        const provider = detectProvider(model, rawModel);
-        agentModelMap.set(agent.id, { model, provider, raw: rawModel });
-      }
-    }
-
-    // ── Step 2: Parse cron logs ─────────────────────────
-    interface Invocation {
-      agent: string;
-      type: string;
-      date: string;
-    }
-    const invocations: Invocation[] = [];
-
-    const cronLogFiles = (logDirResult.entries ?? []).filter((f) => {
-      const match = f.match(/^cron-(\d{4}-\d{2}-\d{2})\.log$/);
-      return match && last30dates.has(match[1]);
-    });
-
-    // Read all matching log files in parallel
-    const logContents = await Promise.all(
-      cronLogFiles.map(async (filename) => {
-        const dateMatch = filename.match(/^cron-(\d{4}-\d{2}-\d{2})\.log$/);
-        const date = dateMatch ? dateMatch[1] : "";
-        const { data } = await readTextFile(`${OC_LOGS_DIR}/${filename}`);
-        return { date, content: data ?? "" };
-      })
-    );
-
-    for (const { date, content } of logContents) {
-      for (const line of content.split("\n")) {
-        // RUNNING: <agent> -> <target>  (poller invocation)
-        const runMatch = line.match(/RUNNING:\s+(\S+)\s*->/);
-        if (runMatch) {
-          invocations.push({ agent: runMatch[1], type: "poller", date });
-          continue;
+    // Collect all session JSONL file paths
+    const sessionFiles: { agent: string; path: string }[] = [];
+    for (const agentName of agentDirs) {
+      const sessDir = join(AGENTS_DIR, agentName, "sessions");
+      const { entries: files } = await listDir(sessDir).catch(() => ({ entries: [] as string[] }));
+      for (const f of files) {
+        if (f.endsWith(".jsonl")) {
+          sessionFiles.push({ agent: agentName, path: join(sessDir, f) });
         }
-
-        // MAIL_DETECTED: Handing off to <agent>  (processor invocation)
-        const mailMatch = line.match(/MAIL_DETECTED:.*?(?:Handing off to|handing off to|hand off to)\s+(\S+)/i);
-        if (mailMatch) {
-          invocations.push({ agent: mailMatch[1], type: "processor", date });
-          continue;
-        }
-
-        // Skip HIMALAYA_CHECK, POLL_RESULT, PROCESSOR_RESULT (zero-token or double-count)
       }
     }
 
-    // Also check portfolio logs
-    const portfolioLogFiles = (logDirResult.entries ?? []).filter((f) => {
-      const match = f.match(/^portfolio-(\d{4}-\d{2}-\d{2})\.log$/);
-      return match && last30dates.has(match[1]);
-    });
-
-    for (const filename of portfolioLogFiles) {
-      const dateMatch = filename.match(/^portfolio-(\d{4}-\d{2}-\d{2})\.log$/);
-      if (dateMatch) {
-        // Each portfolio log file = one portfolio invocation that day
-        // Find agents that do portfolio work
-        const portfolioAgents = [...agentModelMap.entries()]
-          .filter(([id]) => id.toLowerCase().includes("portfolio"))
-          .map(([id]) => id);
-        const agent = portfolioAgents[0] ?? "portfolio";
-        invocations.push({ agent, type: "portfolio", date: dateMatch[1] });
-      }
-    }
-
-    // ── Step 3: Ollama local models ─────────────────────
-    const localModels: string[] = [];
-    if (ollamaResult.exitCode === 0 && ollamaResult.stdout) {
-      const lines = ollamaResult.stdout.trim().split("\n").slice(1); // skip header
-      for (const line of lines) {
-        const name = line.split(/\s+/)[0];
-        if (name) localModels.push(name);
-      }
-    }
-
-    // ── Accumulate per-model stats ──────────────────────
+    // Parse all session files in parallel
     const modelStats = new Map<string, ModelSpendEntry>();
+    const dailyMap = new Map<string, Map<string, number>>(); // date -> (model -> cost)
 
-    function getOrCreateModel(model: string, provider: string): ModelSpendEntry {
+    function getOrCreate(model: string, provider: string): ModelSpendEntry {
       if (!modelStats.has(model)) {
         modelStats.set(model, {
           model,
@@ -203,48 +76,92 @@ spendByModelRoutes.get("/", async (_req, res) => {
           estimatedInputTokens: 0,
           estimatedOutputTokens: 0,
           estimatedCost: 0,
-          isLocal: isLocalModel(provider),
+          isLocal: isLocalProvider(provider),
           agents: [],
         });
       }
       return modelStats.get(model)!;
     }
 
-    // Daily tracking
-    const dailyMap = new Map<string, Map<string, number>>(); // date -> (model -> cost)
+    const fileResults = await Promise.all(
+      sessionFiles.map(async ({ agent, path: filePath }) => {
+        const { data: content } = await readTextFile(filePath);
+        if (!content) return [];
 
-    for (const inv of invocations) {
-      const agentInfo = agentModelMap.get(inv.agent);
-      const model = agentInfo?.model ?? "unknown";
-      const provider = agentInfo?.provider ?? "anthropic";
-      const entry = getOrCreateModel(model, provider);
+        const records: { agent: string; model: string; provider: string; date: string; cost: number; input: number; output: number; cacheRead: number; cacheWrite: number }[] = [];
 
-      const tokens = TOKEN_ESTIMATES[inv.type] ?? TOKEN_ESTIMATES.default;
-      entry.invocations++;
-      entry.estimatedInputTokens += tokens.input;
-      entry.estimatedOutputTokens += tokens.output;
+        for (const line of content.split("\n")) {
+          if (!line) continue;
+          try {
+            const rec = JSON.parse(line);
+            const ts = rec.timestamp ?? "";
+            if (!ts) continue;
+            const localDate = getLocalDate(ts);
+            if (localDate < cutoffDate) continue;
 
-      if (!entry.agents.includes(inv.agent)) {
-        entry.agents.push(inv.agent);
+            const msg = rec.message;
+            if (!msg || typeof msg !== "object") continue;
+
+            const model = msg.model;
+            const usage = msg.usage;
+            if (!model || !usage) continue;
+
+            const costObj = usage.cost;
+            const totalCost = costObj?.total ?? 0;
+            if (totalCost === 0 && usage.input === 0 && usage.output === 0) continue;
+
+            records.push({
+              agent,
+              model,
+              provider: msg.provider ?? detectProvider(model),
+              date: localDate,
+              cost: totalCost,
+              input: usage.input ?? 0,
+              output: usage.output ?? 0,
+              cacheRead: usage.cacheRead ?? 0,
+              cacheWrite: usage.cacheWrite ?? 0,
+            });
+          } catch {
+            // Skip malformed lines
+          }
+        }
+        return records;
+      }),
+    );
+
+    // Aggregate
+    for (const records of fileResults) {
+      for (const r of records) {
+        const entry = getOrCreate(r.model, r.provider);
+        entry.invocations++;
+        entry.estimatedInputTokens += r.input + r.cacheRead;
+        entry.estimatedOutputTokens += r.output;
+        entry.estimatedCost += r.cost;
+
+        if (!entry.agents.includes(r.agent)) {
+          entry.agents.push(r.agent);
+        }
+
+        // Daily accumulation
+        if (!dailyMap.has(r.date)) dailyMap.set(r.date, new Map());
+        const dayModels = dailyMap.get(r.date)!;
+        dayModels.set(r.model, (dayModels.get(r.model) ?? 0) + r.cost);
       }
-
-      const pricing = entry.isLocal ? { input: 0, output: 0 } : getPricing(model);
-      const cost = computeCost(tokens.input, tokens.output, pricing);
-      entry.estimatedCost += cost;
-
-      // Daily accumulation
-      if (!dailyMap.has(inv.date)) dailyMap.set(inv.date, new Map());
-      const dayModels = dailyMap.get(inv.date)!;
-      dayModels.set(model, (dayModels.get(model) ?? 0) + cost);
     }
 
     // Add local models from ollama that may not have invocations
-    for (const localModel of localModels) {
-      const normalized = normalizeModel(localModel);
-      if (!modelStats.has(normalized)) {
-        getOrCreateModel(normalized, "ollama");
+    try {
+      const ollamaResult = await safeExec("ollama", ["list"], { timeout: 5000 });
+      if (ollamaResult.exitCode === 0 && ollamaResult.stdout) {
+        const lines = ollamaResult.stdout.trim().split("\n").slice(1);
+        for (const line of lines) {
+          const name = line.split(/\s+/)[0];
+          if (name && !modelStats.has(name)) {
+            getOrCreate(name, "ollama");
+          }
+        }
       }
-    }
+    } catch {}
 
     // ── Compute summaries ───────────────────────────────
     const models = [...modelStats.values()].sort((a, b) => b.estimatedCost - a.estimatedCost);
@@ -253,7 +170,7 @@ spendByModelRoutes.get("/", async (_req, res) => {
     // Local savings: what local model invocations would cost at sonnet pricing
     let localSavings = 0;
     for (const m of models) {
-      if (m.isLocal) {
+      if (m.isLocal && m.invocations > 0) {
         localSavings += computeCost(m.estimatedInputTokens, m.estimatedOutputTokens, SONNET_PRICING);
       }
     }

@@ -11,6 +11,7 @@ interface LogModalProps {
 export function LogModal({ scriptName, onClose }: LogModalProps) {
   const [content, setContent] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     api.schedulerLogs(scriptName).then((res) => {
@@ -19,20 +20,38 @@ export function LogModal({ scriptName, onClose }: LogModalProps) {
     });
   }, [scriptName]);
 
+  const reversed = content
+    ? content.split("\n").filter(Boolean).reverse().join("\n")
+    : "";
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(reversed).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
   return (
     <div className={styles.overlay} onClick={onClose}>
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
         <div className={styles.header}>
           <h3 className={styles.title}>Logs: {scriptName}</h3>
-          <button className={styles.closeBtn} onClick={onClose}>
-            Close
-          </button>
+          <div className={styles.headerActions}>
+            {!loading && content && (
+              <button className={styles.copyBtn} onClick={handleCopy}>
+                {copied ? "Copied" : "Copy"}
+              </button>
+            )}
+            <button className={styles.closeBtn} onClick={onClose}>
+              Close
+            </button>
+          </div>
         </div>
         <div className={styles.content}>
           {loading ? (
             <div className={styles.loading}>Loading logs...</div>
           ) : (
-            <LogViewer content={content ?? ""} maxLines={50} />
+            <LogViewer content={reversed} maxLines={50} />
           )}
         </div>
       </div>

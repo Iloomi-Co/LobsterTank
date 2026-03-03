@@ -15,7 +15,7 @@
 set -euo pipefail
 
 OPENCLAW="/opt/homebrew/bin/openclaw"
-AGENT_ID="chief"
+AGENT_ID="beehive"
 TZ="America/Denver"
 PAUSE_FILE="$HOME/.openclaw/.cron-paused"
 LOG_DIR="$HOME/.openclaw/logs"
@@ -44,9 +44,7 @@ echo "$(date -Iseconds) RUNNING: Portfolio compilation (day=$DAY hour=$HOUR)" >>
 RESULT=$($OPENCLAW agent \
     --agent "$AGENT_ID" \
     --session-id "portfolio-$(date +%s)" \
-    --message "Compile the portfolio status for all agents (Bee Hive, Iloomi, TechFabric, Newsie). Check each workspace for recent activity, blockers, and progress. Send a consolidated portfolio summary email to troy@busot.com via himalaya. Subject: 'Portfolio Status — $(TZ=$TZ date '+%A, %B %-d, %Y')'" \
-    --deliver \
-    --channel email \
+    --message "Compile the portfolio status for all agents (Bee Hive, Iloomi, TechFabric, Newsie). Check each workspace for recent activity, blockers, and progress. Send a consolidated portfolio summary email to troy@busot.com using mcp__Zapier_MCP__gmail_send_email. Subject: 'Portfolio Status — $(TZ=$TZ date '+%A, %B %-d, %Y')'" \
     2>&1) || true
 
 echo "$(date -Iseconds) RESULT: $RESULT" >> "$LOG_FILE"

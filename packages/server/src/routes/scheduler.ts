@@ -21,13 +21,225 @@ import {
   CRONTAB_PATH_LINE,
   SCRIPT_LOG_MAP,
   SCRIPT_DESCRIPTIONS,
+  getRegisteredAutomations,
 } from "../config.js";
 
 export const schedulerRoutes = Router();
 
 const LAUNCH_AGENTS_DIR = join(homedir(), "Library/LaunchAgents");
+
+const SYSTEM_SCRIPTS = new Set([
+  "rogue-watchdog.sh",
+  "weekly-audit.sh",
+  "daily-spend-check.sh",
+  "ollama",
+]);
 const ROGUE_BREADCRUMB = join(OC_HOME, "ROGUE_SERVICE_BLOCKED.md");
 const GATEWAY_LABEL = "ai.openclaw.gateway";
+
+// --- Run history helpers ---
+
+type RunStatus = "success" | "failure" | "skipped";
+const SKIP_HISTORY_SCRIPTS = new Set(["rogue-watchdog.sh", "ollama"]);
+const FAILURE_RE = /\bError:|ALERT:|\bfailed\b|timeout after \d|exit code [1-9]|All models failed/i;
+const SUCCESS_RE = /POLL_RESULT: completed|exit code 0\b|Audit complete|Email sent|Bee Hive task completed|Activity detected/;
+const SKIP_RE = /NO_MAIL: 0 unseen|Skipping bee-|No activity\b|POLL_RESULT: NO\b|HEARTBEAT_OK/;
+
+function classifyLogBlock(content: string): RunStatus {
+  if (FAILURE_RE.test(content)) return "failure";
+  if (SUCCESS_RE.test(content)) return "success";
+  if (SKIP_RE.test(content)) return "skipped";
+  return "success";
+}
+
+function fmtDate(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+async function scanDateBasedLogs(
+  logFn: (d: Date) => string,
+): Promise<{ timestamp: string; status: RunStatus }[]> {
+  const results: { timestamp: string; status: RunStatus }[] = [];
+  const today = new Date();
+  for (let i = 0; i < 21 && results.length < 7; i++) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    const fileName = logFn(d);
+    const logPath = join(OC_LOGS_DIR, fileName);
+    if (!(await fileStat(logPath))) continue;
+    const { data: content } = await readTextFile(logPath);
+    if (!content?.trim()) continue;
+    results.push({ timestamp: fmtDate(d), status: classifyLogBlock(content) });
+  }
+  return results.reverse();
+}
+
+async function parseAuditHistory(): Promise<{ timestamp: string; status: RunStatus }[]> {
+  const logPath = join(OC_LOGS_DIR, "audit.log");
+  const { data: content } = await readTextFile(logPath);
+  if (!content?.trim()) return [];
+  const sections = content.split(/^-{3,}$/m);
+  const runs: { timestamp: string; status: RunStatus }[] = [];
+  for (const section of sections) {
+    const m = section.match(/Audit complete:\s*(\S+)/);
+    if (!m) continue;
+    runs.push({ timestamp: m[1], status: classifyLogBlock(section) });
+  }
+  return runs.slice(-7);
+}
+
+async function buildRunHistory(
+  script: string,
+  regLogPattern?: string | null,
+): Promise<{ timestamp: string; status: RunStatus }[]> {
+  if (SKIP_HISTORY_SCRIPTS.has(script)) return [];
+
+  // 1. Registered automation logPattern (date-based)
+  if (regLogPattern?.includes("YYYY")) {
+    const fn = (d: Date) =>
+      regLogPattern
+        .replace("YYYY", String(d.getFullYear()))
+        .replace("MM", String(d.getMonth() + 1).padStart(2, "0"))
+        .replace("DD", String(d.getDate()).padStart(2, "0"));
+    return scanDateBasedLogs(fn);
+  }
+
+  // 2. SCRIPT_LOG_MAP function (date-based)
+  const mapping = SCRIPT_LOG_MAP[script];
+  if (typeof mapping === "function") {
+    return scanDateBasedLogs(mapping);
+  }
+
+  // 3. weekly-audit.sh has structured run markers
+  if (script === "weekly-audit.sh") {
+    return parseAuditHistory();
+  }
+
+  // 4. Other static logs — single latest status
+  if (typeof mapping === "string") {
+    const logPath = join(OC_LOGS_DIR, mapping);
+    const { data: content } = await readTextFile(logPath);
+    if (!content?.trim()) return [];
+    const tsMatch = content.match(/(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?(?:[+-]\d{2}:\d{2})?)/g);
+    const ts = tsMatch ? tsMatch[tsMatch.length - 1] : new Date().toISOString();
+    return [{ timestamp: ts, status: classifyLogBlock(content) }];
+  }
+
+  return [];
+}
+
+// --- Cost estimation helpers ---
+
+const CRON_RUNS_DIR = join(OC_HOME, "cron/runs");
+
+// Per-million-token pricing
+const MODEL_PRICING: Record<string, { input: number; output: number }> = {
+  "claude-sonnet-4-5": { input: 3.0, output: 15.0 },
+  "claude-sonnet-4-6": { input: 3.0, output: 15.0 },
+  "claude-haiku-4-5": { input: 0.25, output: 1.25 },
+  "claude-opus-4-6": { input: 15.0, output: 75.0 },
+};
+
+function lookupPricing(model: string, provider: string): { input: number; output: number } | null {
+  if (provider === "ollama") return { input: 0, output: 0 };
+  if (MODEL_PRICING[model]) return MODEL_PRICING[model];
+  for (const [key, pricing] of Object.entries(MODEL_PRICING)) {
+    if (model.includes(key) || key.includes(model)) return pricing;
+  }
+  // Default to Sonnet pricing for unknown cloud models
+  if (provider === "anthropic" || provider === "google") return { input: 3.0, output: 15.0 };
+  return null;
+}
+
+// Maps cron/runs jobIds → crontab script names
+const JOB_SCRIPT_MAP: Record<string, string> = {
+  "bee-email-poll-1min": "bee-email-check.sh",
+};
+
+// Estimated tokens for scripts without cron/runs data
+const SCRIPT_COST_PROFILE: Record<string, { input: number; output: number; model: string } | null> = {
+  "openclaw-portfolio-wrapper.sh": { input: 3000, output: 5000, model: "claude-sonnet-4-5" },
+  "github-morning-check.sh": { input: 2000, output: 3000, model: "claude-sonnet-4-5" },
+  "email-summary-wrapper.sh": { input: 2000, output: 3000, model: "claude-sonnet-4-5" },
+};
+
+interface ScriptCostData {
+  costs: number[];
+  totalWeekly: number;
+  runsThisWeek: number;
+}
+
+async function parseCronRunCosts(): Promise<Map<string, ScriptCostData>> {
+  const result = new Map<string, ScriptCostData>();
+  const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+
+  try {
+    const { entries: files } = await listDir(CRON_RUNS_DIR);
+    for (const file of files) {
+      if (!file.endsWith(".jsonl")) continue;
+      const fullPath = join(CRON_RUNS_DIR, file);
+      const { data: content } = await readTextFile(fullPath);
+      if (!content) continue;
+
+      for (const line of content.trim().split("\n")) {
+        try {
+          const rec = JSON.parse(line);
+          if (rec.action !== "finished" || !rec.usage || rec.ts < weekAgo) continue;
+
+          const script = JOB_SCRIPT_MAP[rec.jobId] ?? null;
+          if (!script) continue;
+
+          const pricing = lookupPricing(rec.model ?? "", rec.provider ?? "");
+          if (!pricing) continue;
+
+          const cost = (rec.usage.input_tokens * pricing.input + rec.usage.output_tokens * pricing.output) / 1_000_000;
+
+          if (!result.has(script)) {
+            result.set(script, { costs: [], totalWeekly: 0, runsThisWeek: 0 });
+          }
+          const entry = result.get(script)!;
+          entry.costs.push(cost);
+          entry.totalWeekly += cost;
+          entry.runsThisWeek++;
+        } catch {}
+      }
+    }
+  } catch {}
+
+  return result;
+}
+
+function buildCostEstimate(
+  script: string,
+  cronCosts: Map<string, ScriptCostData>,
+  runsThisWeek: number,
+): { lastRunCost: number | null; weeklyTotal: number | null; runsThisWeek: number } | null {
+  // System scripts have no API cost
+  if (SYSTEM_SCRIPTS.has(script)) return null;
+
+  // Try actual data from cron/runs
+  const actual = cronCosts.get(script);
+  if (actual && actual.costs.length > 0) {
+    return {
+      lastRunCost: actual.costs[actual.costs.length - 1],
+      weeklyTotal: actual.totalWeekly,
+      runsThisWeek: actual.runsThisWeek,
+    };
+  }
+
+  // Fall back to estimates
+  const profile = SCRIPT_COST_PROFILE[script];
+  if (!profile) return null;
+  const pricing = MODEL_PRICING[profile.model];
+  if (!pricing) return null;
+  const perRun = (profile.input * pricing.input + profile.output * pricing.output) / 1_000_000;
+
+  return {
+    lastRunCost: perRun,
+    weeklyTotal: runsThisWeek > 0 ? runsThisWeek * perRun : null,
+    runsThisWeek,
+  };
+}
 
 // --- Helpers ---
 
@@ -84,10 +296,20 @@ schedulerRoutes.get("/", async (_req, res) => {
       parseLaunchd(),
     ]);
 
+    // Compute budget roll-up
+    const weeklyTotal = crontabResult.entries.reduce(
+      (sum, e) => sum + (e.costEstimate?.weeklyTotal ?? 0), 0,
+    );
+
     const state: SchedulerState = {
       crontab: crontabResult,
       ocCrons: ocCronResult,
       launchd: launchdResult,
+      budgetSummary: {
+        weeklyTotal,
+        dailyAverage: weeklyTotal / 7,
+        estimatedMonthly: (weeklyTotal / 7) * 30,
+      },
     };
 
     const response: ApiResponse<SchedulerState> = {
@@ -105,6 +327,17 @@ async function parseCrontab() {
   const result = await safeExec("crontab", ["-l"]);
   const raw = result.exitCode === 0 ? result.stdout : "";
   const lines = raw.split("\n");
+
+  // Build registration lookup map
+  const automations = await getRegisteredAutomations();
+  const regMap = new Map<string, (typeof automations)[number]>();
+  for (const a of automations) {
+    if (a.match) regMap.set(a.match, a);
+    if (a.script && !regMap.has(a.script)) regMap.set(a.script, a);
+  }
+
+  // Parse actual cost data from cron/runs
+  const cronCosts = await parseCronRunCosts();
 
   let pathLine: string | null = null;
   const entries: SchedulerCrontabEntry[] = [];
@@ -145,8 +378,15 @@ async function parseCrontab() {
     }
 
     const lastRun = await parseLastRun(logFile);
+    const category = SYSTEM_SCRIPTS.has(script) ? "system" as const : "agent" as const;
+    const reg = regMap.get(script);
+    const runHistory = await buildRunHistory(script, reg?.logPattern ?? null);
 
-    entries.push({
+    // Count runs this week from runHistory
+    const weekAgoStr = fmtDate(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
+    const runsThisWeek = runHistory.filter((r) => r.timestamp >= weekAgoStr).length;
+
+    const entry: SchedulerCrontabEntry = {
       lineIndex: i,
       schedule,
       command,
@@ -155,7 +395,22 @@ async function parseCrontab() {
       logFile,
       lastRun,
       status,
-    });
+      category,
+      scriptPath: scriptPath,
+      runHistory,
+      costEstimate: buildCostEstimate(script, cronCosts, runsThisWeek),
+    };
+
+    if (category === "agent" && reg) {
+      entry.registrationMeta = {
+        agent: reg.agent ?? "",
+        description: reg.description ?? "",
+        pauseFile: reg.pauseFile ?? "",
+        preCheck: reg.preCheck ?? "",
+      };
+    }
+
+    entries.push(entry);
   }
 
   return { entries, pathLine, raw };
@@ -428,6 +683,46 @@ schedulerRoutes.post("/launchd/remove", async (req, res) => {
       ok: result.exitCode === 0,
       data: { label, removed: result.exitCode === 0 },
       error: result.exitCode !== 0 ? result.stderr : undefined,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (e: any) {
+    res.json({ ok: false, error: e.message, timestamp: new Date().toISOString() });
+  }
+});
+
+// --- POST /run-script ---
+
+schedulerRoutes.post("/run-script", async (req, res) => {
+  const { scriptName } = req.body;
+  if (!scriptName || typeof scriptName !== "string") {
+    res.status(400).json({ ok: false, error: "Invalid scriptName", timestamp: new Date().toISOString() });
+    return;
+  }
+
+  // Only allow .sh files from BIN_DIR — no path traversal
+  if (!scriptName.endsWith(".sh") || scriptName.includes("/") || scriptName.includes("..")) {
+    res.status(400).json({ ok: false, error: "Invalid script name", timestamp: new Date().toISOString() });
+    return;
+  }
+
+  const scriptPath = join(BIN_DIR, scriptName);
+  const exists = await fileStat(scriptPath);
+  if (!exists) {
+    res.status(404).json({ ok: false, error: `Script not found: ${scriptName}`, timestamp: new Date().toISOString() });
+    return;
+  }
+
+  try {
+    await logAction("SCHEDULER_RUN_SCRIPT", `Manual run: ${scriptName}`);
+    const result = await safeExec("bash", [scriptPath], { timeout: 120_000 });
+
+    const output = (result.stdout + "\n" + result.stderr).trim();
+    const truncated = output.length > 4000 ? output.slice(-4000) : output;
+
+    res.json({
+      ok: result.exitCode === 0,
+      data: { scriptName, exitCode: result.exitCode, output: truncated },
+      error: result.exitCode !== 0 ? `Exit code ${result.exitCode}` : undefined,
       timestamp: new Date().toISOString(),
     });
   } catch (e: any) {
