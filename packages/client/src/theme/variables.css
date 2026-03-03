@@ -1,18 +1,18 @@
 :root {
   /* ── Monochromatic base (dark) ──────────── */
   --bg-primary: #09090b;
-  --bg-secondary: #111113;
-  --bg-tertiary: #19191d;
-  --bg-panel: #111113;
-  --bg-hover: #1e1e23;
-  --bg-active: #27272a;
+  --bg-secondary: #141416;
+  --bg-tertiary: #1c1c20;
+  --bg-panel: #141416;
+  --bg-hover: #202025;
+  --bg-active: #2a2a2f;
 
-  --border-primary: #27272a;
-  --border-subtle: #1e1e23;
+  --border-primary: #2a2a2f;
+  --border-subtle: transparent;
 
   --text-primary: #fafafa;
-  --text-secondary: #a1a1aa;
-  --text-muted: #71717a;
+  --text-secondary: #8f8f99;
+  --text-muted: #62626b;
   --text-accent: #00e0a0;
 
   --accent-primary-dim: rgba(0, 224, 160, 0.08);
@@ -40,19 +40,20 @@
   --font-size-2xl: 2.1rem;
   --font-size-3xl: 2.625rem;
 
+  --font-weight-light: 300;
   --font-weight-normal: 400;
   --font-weight-medium: 500;
   --font-weight-semibold: 600;
   --font-weight-bold: 700;
 
   /* ── Geometry ───────────────────────────── */
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 20px;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 24px;
 
-  --shadow-panel: 0 1px 2px rgba(0, 0, 0, 0.08);
-  --shadow-elevated: 0 12px 40px rgba(0, 0, 0, 0.35);
+  --shadow-panel: none;
+  --shadow-elevated: 0 12px 40px rgba(0, 0, 0, 0.45);
 
   --transition-fast: 120ms ease;
   --transition-normal: 200ms ease;
@@ -61,19 +62,19 @@
 /* ── Light theme ──────────────────────────── */
 
 [data-theme="light"] {
-  --bg-primary: #f8f8f8;
+  --bg-primary: #fafafa;
   --bg-secondary: #ffffff;
-  --bg-tertiary: #f2f2f3;
+  --bg-tertiary: #f4f4f6;
   --bg-panel: #ffffff;
-  --bg-hover: #ededf0;
+  --bg-hover: #f0f0f3;
   --bg-active: #e4e4e7;
 
-  --border-primary: #e4e4e7;
-  --border-subtle: #ededf0;
+  --border-primary: #d4d4d8;
+  --border-subtle: transparent;
 
   --text-primary: #09090b;
-  --text-secondary: #52525b;
-  --text-muted: #a1a1aa;
+  --text-secondary: #4a4a52;
+  --text-muted: #94949e;
   --text-accent: #059669;
 
   --accent-primary-dim: rgba(5, 150, 105, 0.06);
@@ -89,6 +90,6 @@
   --orange: #c2410c;
   --purple: #7c3aed;
 
-  --shadow-panel: 0 1px 2px rgba(0, 0, 0, 0.03);
+  --shadow-panel: 0 1px 3px rgba(0, 0, 0, 0.03);
   --shadow-elevated: 0 12px 40px rgba(0, 0, 0, 0.1);
 }

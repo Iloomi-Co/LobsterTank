@@ -16,13 +16,13 @@
   font-size: var(--font-size-xs);
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  border-bottom: 1px solid var(--border-subtle);
+  border-bottom: 1px solid rgba(128, 128, 128, 0.08);
   white-space: nowrap;
 }
 
 .table td {
   padding: 14px 16px;
-  border-bottom: 1px solid var(--border-subtle);
+  border-bottom: 1px solid rgba(128, 128, 128, 0.08);
   color: var(--text-secondary);
 }
 

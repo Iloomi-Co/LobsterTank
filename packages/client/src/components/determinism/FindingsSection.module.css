@@ -1,6 +1,6 @@
 .section {
   background: var(--bg-panel);
-  border: 1px solid var(--border-primary);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-panel);
   overflow: hidden;
@@ -17,7 +17,7 @@
 
 .sectionTitle {
   font-size: var(--font-size-md);
-  font-weight: 600;
+  font-weight: var(--font-weight-medium);
   color: var(--text-primary);
 }
 
@@ -135,7 +135,7 @@
 .findingBody {
   padding: 16px 22px;
   border-top: 1px solid var(--border-subtle);
-  background: var(--bg-secondary);
+  background: var(--bg-tertiary);
   display: flex;
   flex-direction: column;
   gap: 12px;

@@ -49,15 +49,15 @@
 
 .heroLabel {
   font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-normal);
   color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
 }
 
 .heroValue {
   font-size: var(--font-size-3xl);
-  font-weight: var(--font-weight-bold);
+  font-weight: var(--font-weight-normal);
   color: var(--text-primary);
   line-height: 1;
   letter-spacing: -0.03em;
@@ -108,7 +108,7 @@
 
 .cardTitle {
   font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-medium);
   color: var(--text-primary);
   letter-spacing: -0.02em;
 }
@@ -330,7 +330,7 @@
 
 .donutTotal {
   font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-bold);
+  font-weight: var(--font-weight-medium);
   color: var(--text-primary);
   line-height: 1;
 }
@@ -440,7 +440,7 @@
 
 .dayDetailTitle {
   font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-medium);
   color: var(--text-primary);
 }
 
@@ -504,7 +504,7 @@
 
 .modelName {
   font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-medium);
   color: var(--text-primary);
   flex: 1;
   overflow: hidden;
@@ -556,7 +556,7 @@
 
 .heroValueGreen {
   font-size: var(--font-size-3xl);
-  font-weight: var(--font-weight-bold);
+  font-weight: var(--font-weight-normal);
   color: var(--green);
   line-height: 1;
   letter-spacing: -0.03em;
@@ -564,7 +564,7 @@
 
 .heroValueSm {
   font-size: var(--font-size-xl);
-  font-weight: var(--font-weight-bold);
+  font-weight: var(--font-weight-medium);
   color: var(--text-primary);
   line-height: 1;
   letter-spacing: -0.02em;

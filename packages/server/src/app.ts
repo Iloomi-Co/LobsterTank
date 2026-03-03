@@ -21,5 +21,15 @@ export function createApp() {
     });
   }
 
+  // Global error handler — always return JSON, never HTML
+  app.use((err: any, _req: any, res: any, _next: any) => {
+    const status = err.status || err.statusCode || 500;
+    res.status(status).json({
+      ok: false,
+      error: err.message || "Internal server error",
+      timestamp: new Date().toISOString(),
+    });
+  });
+
   return app;
 }

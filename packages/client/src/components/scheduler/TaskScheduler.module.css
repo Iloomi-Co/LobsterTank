@@ -18,7 +18,7 @@
 
 .headerTitle {
   font-size: var(--font-size-lg);
-  font-weight: 600;
+  font-weight: var(--font-weight-medium);
   color: var(--text-primary);
   letter-spacing: -0.02em;
 }

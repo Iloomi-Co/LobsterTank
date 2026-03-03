@@ -22,8 +22,8 @@ body {
   font-weight: var(--font-weight-normal);
   color: var(--text-primary);
   background: var(--bg-primary);
-  line-height: 1.55;
-  letter-spacing: -0.01em;
+  line-height: 1.5;
+  letter-spacing: -0.015em;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow: hidden;

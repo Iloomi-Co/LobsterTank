@@ -517,7 +517,7 @@ function classifyLaunchdJob(label: string): "protected" | "rogue" | "unknown" {
 // --- POST /crontab/toggle ---
 
 schedulerRoutes.post("/crontab/toggle", async (req, res) => {
-  const { lineIndex, enabled } = req.body;
+  const { lineIndex, enabled } = req.body ?? {};
   if (typeof lineIndex !== "number" || typeof enabled !== "boolean") {
     res.status(400).json({ ok: false, error: "Invalid parameters", timestamp: new Date().toISOString() });
     return;
@@ -570,7 +570,7 @@ const SCHEDULE_RE = /^(@\w+|[\d*,\/-]+\s+[\d*,\/-]+\s+[\d*,\/-]+\s+[\d*,\/-]+\s+
 const CRON_LINE_RE = /^(@\w+|[\d*,\/-]+\s+[\d*,\/-]+\s+[\d*,\/-]+\s+[\d*,\/-]+\s+[\d*,\/-]+)\s+(.+)$/;
 
 schedulerRoutes.post("/crontab/update-schedule", async (req, res) => {
-  const { lineIndex, schedule } = req.body;
+  const { lineIndex, schedule } = req.body ?? {};
   if (typeof lineIndex !== "number" || typeof schedule !== "string") {
     res.status(400).json({ ok: false, error: "Invalid parameters", timestamp: new Date().toISOString() });
     return;
@@ -629,7 +629,7 @@ schedulerRoutes.post("/crontab/update-schedule", async (req, res) => {
 // --- POST /oc-cron/remove ---
 
 schedulerRoutes.post("/oc-cron/remove", async (req, res) => {
-  const { id } = req.body;
+  const { id } = req.body ?? {};
   if (!id || typeof id !== "string") {
     res.status(400).json({ ok: false, error: "Invalid id", timestamp: new Date().toISOString() });
     return;
@@ -686,7 +686,7 @@ schedulerRoutes.post("/oc-cron/remove-all", async (req, res) => {
 // --- POST /launchd/remove ---
 
 schedulerRoutes.post("/launchd/remove", async (req, res) => {
-  const { label } = req.body;
+  const { label } = req.body ?? {};
   if (!label || typeof label !== "string") {
     res.status(400).json({ ok: false, error: "Invalid label", timestamp: new Date().toISOString() });
     return;
@@ -725,7 +725,7 @@ schedulerRoutes.post("/launchd/remove", async (req, res) => {
 // --- POST /run-script ---
 
 schedulerRoutes.post("/run-script", async (req, res) => {
-  const { scriptName } = req.body;
+  const { scriptName } = req.body ?? {};
   if (!scriptName || typeof scriptName !== "string") {
     res.status(400).json({ ok: false, error: "Invalid scriptName", timestamp: new Date().toISOString() });
     return;
