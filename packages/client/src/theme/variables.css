@@ -62,7 +62,7 @@
 /* ── Light theme ──────────────────────────── */
 
 [data-theme="light"] {
-  --bg-primary: #fafafa;
+  --bg-primary: #eeeeee;
   --bg-secondary: #ffffff;
   --bg-tertiary: #f4f4f6;
   --bg-panel: #ffffff;
