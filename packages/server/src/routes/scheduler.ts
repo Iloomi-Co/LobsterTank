@@ -89,12 +89,59 @@ function fmtDate(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
+// Timestamp regexes for log lines:
+//   ISO:     2026-03-04T09:10:01-07:00 ...
+//   Bracket: [2026-03-04 06:00:01] ...
+const ISO_TS_RE = /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2})\s/;
+const BRACKET_TS_RE = /^\[(\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2})\]/;
+
+function parseLineTimestamp(line: string): { raw: string; epoch: number } | null {
+  const iso = line.match(ISO_TS_RE);
+  if (iso) return { raw: iso[1], epoch: new Date(iso[1]).getTime() };
+  const bracket = line.match(BRACKET_TS_RE);
+  if (bracket) return { raw: bracket[1], epoch: new Date(bracket[1]).getTime() };
+  return null;
+}
+
+/**
+ * Split a log file into individual runs by detecting time gaps between
+ * consecutive timestamped lines. A gap > 90 seconds indicates a new run.
+ * Returns runs in chronological order, each with timestamp and content.
+ */
+function splitLogIntoRuns(content: string): { timestamp: string; content: string }[] {
+  const lines = content.split("\n");
+  const runs: { timestamp: string; lines: string[] }[] = [];
+  let currentRun: { timestamp: string; lines: string[] } | null = null;
+  let lastEpoch: number | null = null;
+
+  for (const line of lines) {
+    const ts = parseLineTimestamp(line);
+    if (ts) {
+      // Start a new run if gap > 90s or first timestamped line
+      if (!currentRun || (lastEpoch !== null && ts.epoch - lastEpoch > 90_000)) {
+        if (currentRun) runs.push(currentRun);
+        currentRun = { timestamp: ts.raw, lines: [line] };
+      } else {
+        currentRun.lines.push(line);
+      }
+      lastEpoch = ts.epoch;
+    } else if (currentRun) {
+      // Continuation line (multi-line output from a run)
+      currentRun.lines.push(line);
+    }
+  }
+  if (currentRun) runs.push(currentRun);
+
+  return runs.map((r) => ({ timestamp: r.timestamp, content: r.lines.join("\n") }));
+}
+
 async function scanDateBasedLogs(
   logFn: (d: Date) => string,
 ): Promise<{ timestamp: string; status: RunStatus }[]> {
-  const results: { timestamp: string; status: RunStatus }[] = [];
+  // Collect all runs across day files, newest days first
+  const allRuns: { timestamp: string; status: RunStatus }[] = [];
   const today = new Date();
-  for (let i = 0; i < 21 && results.length < 7; i++) {
+  for (let i = 0; i < 21 && allRuns.length < 7; i++) {
     const d = new Date(today);
     d.setDate(d.getDate() - i);
     const fileName = logFn(d);
@@ -102,9 +149,18 @@ async function scanDateBasedLogs(
     if (!(await fileStat(logPath))) continue;
     const { data: content } = await readTextFile(logPath);
     if (!content?.trim()) continue;
-    results.push({ timestamp: fmtDate(d), status: classifyLogBlock(content) });
+
+    const runs = splitLogIntoRuns(content);
+    if (runs.length === 0) continue;
+
+    // Runs are chronological; classify each one
+    const classified = runs.map((r) => ({ timestamp: r.timestamp, status: classifyLogBlock(r.content) }));
+
+    // We iterate newest day first — prepend this day's runs so older days go to front
+    allRuns.unshift(...classified);
   }
-  return results.reverse();
+  // Return only the 7 most recent runs, in chronological order
+  return allRuns.slice(-7);
 }
 
 async function parseAuditHistory(): Promise<{ timestamp: string; status: RunStatus }[]> {
