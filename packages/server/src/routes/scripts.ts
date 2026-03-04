@@ -8,7 +8,7 @@ import { logAction } from "../lib/action-logger.js";
 import { ensureGitRepo, snapshot } from "../lib/git.js";
 import {
   OC_HOME, BIN_DIR, DEPLOY_SCRIPTS, DEPLOY_CONFIG,
-  DEPLOYED_CONFIG_DIR, OC_LOGS_DIR, EXPECTED_CRON_ENTRIES,
+  DEPLOYED_CONFIG_DIR, OC_LOGS_DIR, getExpectedCronEntries,
 } from "../config.js";
 
 export const scriptRoutes = Router();
@@ -39,7 +39,8 @@ scriptRoutes.get("/status", async (_req, res) => {
         }
       }
 
-      const expectedCrons = EXPECTED_CRON_ENTRIES.filter((e) => e.script === file);
+      const allExpectedEntries = await getExpectedCronEntries();
+      const expectedCrons = allExpectedEntries.filter((e) => e.script === file);
       const cronInstalled = expectedCrons.length > 0
         ? expectedCrons.every((e) => currentCrontab.includes(e.match))
         : true;

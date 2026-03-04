@@ -172,7 +172,7 @@ export function FindingsSection({ findings, onDispatch, onDeepScan, deepScanning
                   )}
 
                   <div className={styles.findingActions}>
-                    {!f.llmReview && (
+                    {!f.llmReview && f.category !== "missing-safeguard" && (
                       <button
                         className={styles.reviewBtn}
                         onClick={() => onDeepScan(f.id)}
@@ -181,12 +181,16 @@ export function FindingsSection({ findings, onDispatch, onDeepScan, deepScanning
                         {deepScanning ? "Reviewing..." : "Review (OC)"}
                       </button>
                     )}
-                    <button
-                      className={styles.dispatchBtn}
-                      onClick={() => onDispatch(f)}
-                    >
-                      Dispatch Fix
-                    </button>
+                    {f.category === "missing-safeguard" ? (
+                      <span className={styles.configSyncHint}>Use Config Sync to fix</span>
+                    ) : (
+                      <button
+                        className={styles.dispatchBtn}
+                        onClick={() => onDispatch(f)}
+                      >
+                        Dispatch Fix
+                      </button>
+                    )}
                   </div>
                 </div>
               )}

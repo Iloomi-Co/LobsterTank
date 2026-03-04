@@ -4,7 +4,7 @@ import { writeFile, unlink, mkdir } from "fs/promises";
 import type { ApiResponse } from "../types/index.js";
 import { safeExec } from "../lib/exec.js";
 import { logAction } from "../lib/action-logger.js";
-import { OC_HOME, EXPECTED_CRON_ENTRIES, CRONTAB_PATH_LINE } from "../config.js";
+import { OC_HOME, getExpectedCronEntries, getCrontabPathLine } from "../config.js";
 
 export const crontabRoutes = Router();
 
@@ -61,14 +61,16 @@ crontabRoutes.post("/install", async (req, res) => {
   const { entries: newEntries } = req.body as { entries?: string[] };
 
   try {
-    await logAction("CRONTAB_INSTALL", `Adding ${(newEntries ?? EXPECTED_CRON_ENTRIES).length} entries`);
+    const expectedEntries = await getExpectedCronEntries();
+    await logAction("CRONTAB_INSTALL", `Adding ${(newEntries ?? expectedEntries).length} entries`);
 
     const cronResult = await safeExec("crontab", ["-l"]);
     let currentCrontab = cronResult.exitCode === 0 ? cronResult.stdout.trimEnd() : "";
 
     // Ensure PATH line
     if (!currentCrontab.includes("PATH=")) {
-      currentCrontab = CRONTAB_PATH_LINE + "\n" + currentCrontab;
+      const pathLine = await getCrontabPathLine();
+      currentCrontab = pathLine + "\n" + currentCrontab;
     }
 
     // Add expected entries that are missing
@@ -81,7 +83,7 @@ crontabRoutes.post("/install", async (req, res) => {
         }
       }
     } else {
-      for (const expected of EXPECTED_CRON_ENTRIES) {
+      for (const expected of expectedEntries) {
         if (!currentCrontab.includes(expected.match)) {
           currentCrontab += `\n${expected.schedule} ${expected.command}`;
         }

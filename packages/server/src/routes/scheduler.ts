@@ -18,9 +18,8 @@ import {
   OC_HOME,
   OC_LOGS_DIR,
   BIN_DIR,
-  CRONTAB_PATH_LINE,
-  SCRIPT_LOG_MAP,
-  SCRIPT_DESCRIPTIONS,
+  getScriptLogMap,
+  getScriptDescriptions,
   getRegisteredAutomations,
 } from "../config.js";
 
@@ -104,8 +103,9 @@ async function buildRunHistory(
     return scanDateBasedLogs(fn);
   }
 
-  // 2. SCRIPT_LOG_MAP function (date-based)
-  const mapping = SCRIPT_LOG_MAP[script];
+  // 2. Script metadata log map (date-based or static)
+  const logMap = await getScriptLogMap();
+  const mapping = logMap[script];
   if (typeof mapping === "function") {
     return scanDateBasedLogs(mapping);
   }
@@ -151,17 +151,11 @@ function lookupPricing(model: string, provider: string): { input: number; output
   return null;
 }
 
-// Maps cron/runs jobIds → crontab script names
-const JOB_SCRIPT_MAP: Record<string, string> = {
-  "bee-email-poll-1min": "bee-email-check.sh",
-};
+// Maps cron/runs jobIds → crontab script names (populated from cron/runs data at runtime)
+const JOB_SCRIPT_MAP: Record<string, string> = {};
 
-// Estimated tokens for scripts without cron/runs data
-const SCRIPT_COST_PROFILE: Record<string, { input: number; output: number; model: string } | null> = {
-  "openclaw-portfolio-wrapper.sh": { input: 3000, output: 5000, model: "claude-sonnet-4-5" },
-  "github-morning-check.sh": { input: 2000, output: 3000, model: "claude-sonnet-4-5" },
-  "email-summary-wrapper.sh": { input: 2000, output: 3000, model: "claude-sonnet-4-5" },
-};
+// Estimated tokens for scripts without cron/runs data (populated from registered-automations.json at runtime)
+const SCRIPT_COST_PROFILE: Record<string, { input: number; output: number; model: string } | null> = {};
 
 interface ScriptCostData {
   costs: number[];
@@ -249,17 +243,19 @@ function extractScript(command: string): string {
   return match ? match[0] : basename(command.split(/\s+/)[0]);
 }
 
-function resolveLogFile(script: string): string | null {
-  const mapping = SCRIPT_LOG_MAP[script];
+async function resolveLogFile(script: string): Promise<string | null> {
+  const logMap = await getScriptLogMap();
+  const mapping = logMap[script];
   if (!mapping) return null;
   if (typeof mapping === "function") return mapping(new Date());
   return mapping;
 }
 
-function descriptionForEntry(script: string, command: string): string {
-  const desc = SCRIPT_DESCRIPTIONS[script];
+async function descriptionForEntry(script: string, command: string): Promise<string> {
+  const descriptions = await getScriptDescriptions();
+  const desc = descriptions[script];
   if (desc) return desc;
-  // Try to extract description from wrapper args (e.g. openclaw-agent-wrapper.sh <agent> <processor> "<desc>")
+  // Try to extract description from quoted args in the cron command
   const quoted = command.match(/"([^"]+)"/);
   if (quoted) return quoted[1];
   // Ollama keepalive
@@ -364,7 +360,7 @@ async function parseCrontab() {
     const schedule = match[1];
     const command = match[2];
     const script = extractScript(command);
-    const logFile = resolveLogFile(script);
+    const logFile = await resolveLogFile(script);
     const scriptPath = join(BIN_DIR, script);
     const scriptExists = script.endsWith(".sh") ? await fileStat(scriptPath) : true;
 
@@ -391,7 +387,7 @@ async function parseCrontab() {
       schedule,
       command,
       script,
-      description: descriptionForEntry(script, command),
+      description: await descriptionForEntry(script, command),
       logFile,
       lastRun,
       status,
@@ -800,7 +796,8 @@ schedulerRoutes.get("/script/:scriptName", async (req, res) => {
 
 schedulerRoutes.get("/logs/:scriptName", async (req, res) => {
   const { scriptName } = req.params;
-  const mapping = SCRIPT_LOG_MAP[scriptName];
+  const logMap = await getScriptLogMap();
+  const mapping = logMap[scriptName];
 
   if (!mapping) {
     res.status(404).json({ ok: false, error: `No log mapping for ${scriptName}`, timestamp: new Date().toISOString() });

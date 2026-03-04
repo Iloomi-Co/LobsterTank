@@ -1,10 +1,15 @@
 {
   "name": "lobster-tank",
-  "private": true,
+  "version": "0.1.0",
+  "description": "OpenClaw management dashboard — audit, monitor, and manage AI agent deployments",
+  "license": "MIT",
   "workspaces": [
     "packages/server",
     "packages/client"
   ],
+  "bin": {
+    "lobster-tank": "packages/server/dist/cli.js"
+  },
   "scripts": {
     "dev": "concurrently -n server,client -c blue,green \"npm run dev -w packages/server\" \"npm run dev -w packages/client\"",
     "build": "npm run build -w packages/client && npm run build -w packages/server",

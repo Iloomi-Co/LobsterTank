@@ -242,3 +242,9 @@
   background: var(--bg-hover);
   color: var(--text-primary);
 }
+
+.configSyncHint {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  font-style: italic;
+}

@@ -1,11 +1,12 @@
 {
-  "version": "1.6",
+  "version": "1.7",
   "description": "Maps canonical rule blocks from agents-rules.json to target AGENTS.md files. Used by sync-rules.sh to detect drift and apply fixes. Paths use ~ which the script expands to $HOME.",
-  "lastUpdated": "2026-03-02",
+  "lastUpdated": "2026-03-03",
   "targets": [
     {
       "workspace": "chief",
       "agentName": "Chief",
+      "agentType": "interactive",
       "path": "~/.openclaw/workspace/AGENTS.md",
       "requiredRules": ["scheduling-rules", "log-locations", "cost-monitoring", "troubleshooting-flow", "heartbeat-rules", "automation-creation"],
       "preserveSections": ["Memory System", "Security & Safety", "Data Classification", "Scope Discipline", "Workspace Organization", "Writing Style", "Task Execution & Model Strategy", "Message Consolidation", "Time Display", "Group Chat Protocol", "Tools", "Automated Workflows", "Cron Job Standards", "Notification Queue", "Heartbeats", "Cron-Owned Content", "Error Reporting", "See Also"]
@@ -13,7 +14,32 @@
     {
       "workspace": "beehive",
       "agentName": "Bee Hive (BZZR)",
+      "agentType": "interactive",
       "path": "~/.openclaw/workspace-beehive/AGENTS.md",
+      "requiredRules": ["scheduling-rules", "log-locations", "cost-monitoring", "troubleshooting-flow", "heartbeat-rules", "automation-creation"],
+      "preserveSections": ["all"]
+    },
+    {
+      "workspace": "bee-email-processor",
+      "agentName": "Bee Email Processor",
+      "agentType": "processor",
+      "path": "~/.openclaw/workspace-bee-email-processor/AGENTS.md",
+      "requiredRules": ["scheduling-rules", "log-locations", "cost-monitoring", "troubleshooting-flow", "heartbeat-rules", "automation-creation"],
+      "preserveSections": ["all"]
+    },
+    {
+      "workspace": "bee-email-poller",
+      "agentName": "Bee Email Poller",
+      "agentType": "processor",
+      "path": "~/.openclaw/workspace-bee-email-poller/AGENTS.md",
+      "requiredRules": ["scheduling-rules", "log-locations", "cost-monitoring", "troubleshooting-flow", "heartbeat-rules", "automation-creation"],
+      "preserveSections": ["all"]
+    },
+    {
+      "workspace": "report-formatter",
+      "agentName": "Report Formatter",
+      "agentType": "formatter",
+      "path": "~/.openclaw/workspace-report-formatter/AGENTS.md",
       "requiredRules": ["scheduling-rules", "log-locations", "cost-monitoring", "troubleshooting-flow", "heartbeat-rules", "automation-creation"],
       "preserveSections": ["all"]
     }

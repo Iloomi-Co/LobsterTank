@@ -18,14 +18,9 @@ export function safeExec(
     return Promise.reject(new Error(`Binary not in allowlist: ${name}`));
   }
 
-  // Sanitize args: no shell metacharacters
-  for (const arg of args) {
-    if (/[;&|`$(){}]/.test(arg)) {
-      return Promise.reject(
-        new Error(`Argument contains shell metacharacters: ${arg}`)
-      );
-    }
-  }
+  // Note: execFile does NOT invoke a shell, so args are passed directly
+  // to the process — no shell injection risk. The binary allowlist above
+  // is the security gate.
 
   const timeout = options.timeout ?? COMMAND_TIMEOUT_MS;
 

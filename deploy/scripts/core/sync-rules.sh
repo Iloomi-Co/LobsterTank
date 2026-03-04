@@ -20,7 +20,7 @@ set -euo pipefail
 
 # ── Resolve paths ──────────────────────────────────────────────────
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-CONFIG_DIR="$(cd "$SCRIPT_DIR/../config" && pwd)"
+CONFIG_DIR="$(cd "$SCRIPT_DIR/../../config" && pwd)"
 
 RULES_FILE="$CONFIG_DIR/agents-rules.json"
 MANIFEST_FILE="$CONFIG_DIR/sync-manifest.json"
@@ -79,10 +79,24 @@ log() {
     echo "$(date -Iseconds) $1" >> "$LOG_FILE" 2>/dev/null || true
 }
 
+# Resolve rule content for a given agentType. Uses template if available, falls back to full content.
+resolve_rule_content() {
+    local rule_id="$1"
+    local agent_type="$2"
+    local tmpl
+    tmpl=$(jq -r ".ruleBlocks[] | select(.id == \"$rule_id\") | .templates[\"$agent_type\"] // empty" "$RULES_FILE" 2>/dev/null)
+    if [[ -n "$tmpl" && "$tmpl" != "null" ]]; then
+        echo "$tmpl"
+    else
+        jq -r ".ruleBlocks[] | select(.id == \"$rule_id\") | .content" "$RULES_FILE"
+    fi
+}
+
 # ── Check each target ──────────────────────────────────────────────
 for ti in $(seq 0 $((TARGET_COUNT - 1))); do
     WORKSPACE=$(jq -r ".targets[$ti].workspace" "$MANIFEST_FILE")
     AGENT_NAME=$(jq -r ".targets[$ti].agentName" "$MANIFEST_FILE")
+    AGENT_TYPE=$(jq -r ".targets[$ti].agentType // \"interactive\"" "$MANIFEST_FILE")
     RAW_PATH=$(jq -r ".targets[$ti].path" "$MANIFEST_FILE")
     # Expand ~ to $HOME
     TARGET_FILE="${RAW_PATH/#\~/$HOME}"
@@ -140,7 +154,7 @@ for ti in $(seq 0 $((TARGET_COUNT - 1))); do
     # ── Report for this workspace ──────────────────────────────────
     if [[ "$FORMAT" == "text" ]]; then
         echo ""
-        echo "=== $AGENT_NAME ($WORKSPACE) ==="
+        echo "=== $AGENT_NAME ($WORKSPACE) [type: $AGENT_TYPE] ==="
         echo "    File: $DISPLAY_PATH"
 
         for r in "${WORKSPACE_OK[@]+"${WORKSPACE_OK[@]}"}"; do
@@ -162,7 +176,7 @@ for ti in $(seq 0 $((TARGET_COUNT - 1))); do
     if [[ ${#WORKSPACE_OUTDATED[@]} -eq 0 ]]; then OUTDATED_JSON="[]"; else OUTDATED_JSON=$(printf '%s\n' "${WORKSPACE_OUTDATED[@]}" | jq -R . | jq -s .); fi
     if [[ ${#WORKSPACE_MISSING[@]} -eq 0 ]]; then MISSING_JSON="[]"; else MISSING_JSON=$(printf '%s\n' "${WORKSPACE_MISSING[@]}" | jq -R . | jq -s .); fi
 
-    RESULTS+=("{\"workspace\":\"$WORKSPACE\",\"agent\":\"$AGENT_NAME\",\"file\":\"$DISPLAY_PATH\",\"ok\":$OK_JSON,\"outdated\":$OUTDATED_JSON,\"missing\":$MISSING_JSON}")
+    RESULTS+=("{\"workspace\":\"$WORKSPACE\",\"agent\":\"$AGENT_NAME\",\"agentType\":\"$AGENT_TYPE\",\"file\":\"$DISPLAY_PATH\",\"ok\":$OK_JSON,\"outdated\":$OUTDATED_JSON,\"missing\":$MISSING_JSON}")
 
     # ── Apply fixes if requested ───────────────────────────────────
     if [[ "$MODE" == "apply" ]] && [[ ${#WORKSPACE_MISSING[@]} -gt 0 || ${#WORKSPACE_OUTDATED[@]} -gt 0 ]]; then
@@ -173,7 +187,7 @@ for ti in $(seq 0 $((TARGET_COUNT - 1))); do
         UPDATED_CONTENT="$FILE_CONTENT"
 
         for RULE_ID in "${WORKSPACE_MISSING[@]+"${WORKSPACE_MISSING[@]}"}"; do
-            RULE_CONTENT=$(jq -r ".ruleBlocks[] | select(.id == \"$RULE_ID\") | .content" "$RULES_FILE")
+            RULE_CONTENT=$(resolve_rule_content "$RULE_ID" "$AGENT_TYPE")
             RULE_TITLE=$(jq -r ".ruleBlocks[] | select(.id == \"$RULE_ID\") | .title" "$RULES_FILE")
 
             # Append before "## See Also" if it exists, otherwise append at end
@@ -198,7 +212,7 @@ else:
 
         # For outdated rules, replace the section with canonical content
         for RULE_ID in "${WORKSPACE_OUTDATED[@]+"${WORKSPACE_OUTDATED[@]}"}"; do
-            RULE_CONTENT=$(jq -r ".ruleBlocks[] | select(.id == \"$RULE_ID\") | .content" "$RULES_FILE")
+            RULE_CONTENT=$(resolve_rule_content "$RULE_ID" "$AGENT_TYPE")
             RULE_TITLE=$(jq -r ".ruleBlocks[] | select(.id == \"$RULE_ID\") | .title" "$RULES_FILE")
 
             # Replace: find "## Title" through to next "## " heading (or EOF)

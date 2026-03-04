@@ -1,12 +1,13 @@
 import { homedir } from "os";
 import { join } from "path";
+import { readFile, writeFile, mkdir } from "fs/promises";
 
-export const PORT = 3333;
+export const PORT = parseInt(process.env.LOBSTER_PORT || "3333", 10);
 export const COMMAND_TIMEOUT_MS = 5000;
 
 export const OC_HOME = join(homedir(), ".openclaw");
 export const OC_CONFIG = join(OC_HOME, "openclaw.json");
-export const OC_GATEWAY_PORT = 18789;
+export const OC_GATEWAY_PORT = parseInt(process.env.OC_GATEWAY_PORT || "18789", 10);
 
 export const DASHBOARD_STATE_DIR = join(OC_HOME, "dashboard");
 export const DASHBOARD_CONFIG_FILE = join(DASHBOARD_STATE_DIR, "config.json");
@@ -16,7 +17,7 @@ export const DASHBOARD_ACTIONS_LOG = join(DASHBOARD_STATE_DIR, "dashboard-action
 // deploy/ source directory inside the LobsterTank repo
 const SERVER_SRC_DIR = import.meta.dirname ?? new URL(".", import.meta.url).pathname;
 export const DEPLOY_SOURCE = join(SERVER_SRC_DIR, "../../../deploy");
-export const DEPLOY_SCRIPTS = join(DEPLOY_SOURCE, "scripts");
+export const DEPLOY_SCRIPTS = join(DEPLOY_SOURCE, "scripts/core");
 export const DEPLOY_CONFIG = join(DEPLOY_SOURCE, "config");
 
 // Deployed locations on the host
@@ -28,72 +29,134 @@ export const REGISTRY_FILE = join(homedir(), ".openclaw-registry.json");
 export const CLIENT_DIST = join(SERVER_SRC_DIR, "../../client/dist");
 export const REGISTERED_AUTOMATIONS_FILE = join(OC_HOME, "registered-automations.json");
 
-// Expected crontab entries for deployed scripts
-// `match` is the unique substring used to detect each entry in the live crontab
-export const EXPECTED_CRON_ENTRIES = [
-  { script: "rogue-watchdog.sh", match: "rogue-watchdog.sh", schedule: "*/5 * * * *", command: "~/bin/rogue-watchdog.sh 2>/dev/null" },
-  { script: "weekly-audit.sh", match: "weekly-audit.sh", schedule: "0 6 * * 1", command: "~/bin/weekly-audit.sh >> ~/.openclaw/logs/audit.log 2>&1" },
-  { script: "daily-spend-check.sh", match: "daily-spend-check.sh", schedule: "0 18 * * 1-5", command: "~/bin/daily-spend-check.sh personal 10.00 >> ~/.openclaw/logs/spend.log 2>&1" },
-  { script: "bee-email-check.sh", match: "bee-email-check.sh", schedule: "*/15 * * * *", command: "~/bin/bee-email-check.sh 2>/dev/null" },
-  { script: "openclaw-portfolio-wrapper.sh", match: "openclaw-portfolio-wrapper.sh", schedule: "0 6,15 * * 1-5", command: "~/bin/openclaw-portfolio-wrapper.sh >> ~/.openclaw/logs/portfolio-$(date +\\%Y-\\%m-\\%d).log 2>&1" },
-  { script: "ollama", match: "ollama run qwen3", schedule: "@reboot", command: '/opt/homebrew/bin/ollama run qwen3:14b --keepalive -1s <<< "/bye"' },
-];
+const SCRIPT_METADATA_FILE = join(DASHBOARD_STATE_DIR, "script-metadata.json");
 
-export const CRONTAB_PATH_LINE = "PATH=/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin";
+// --- Expected cron entries (from registered-automations.json only) ---
 
-// Script name → log file path. Functions produce date-based filenames.
-export const SCRIPT_LOG_MAP: Record<string, string | ((date: Date) => string)> = {
-  "rogue-watchdog.sh": "audit.log",
-  "weekly-audit.sh": "audit.log",
-  "daily-spend-check.sh": "spend.log",
-  "bee-email-check.sh": (d: Date) =>
-    `cron-${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}.log`,
-  "openclaw-portfolio-wrapper.sh": (d: Date) =>
-    `portfolio-${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}.log`,
-  "sync-rules.sh": "sync-operations.log",
-};
+export interface CronEntryDef {
+  script: string;
+  match: string;
+  schedule: string;
+  command: string;
+}
 
-// Script name → human-readable description (wrapper/ollama descriptions parsed at runtime from args)
-export const SCRIPT_DESCRIPTIONS: Record<string, string> = {
-  "rogue-watchdog.sh": "Monitors for unauthorized OC processes",
-  "weekly-audit.sh": "Weekly security and config audit",
-  "daily-spend-check.sh": "Daily API spend threshold check",
-  "bee-email-check.sh": "Lightweight email check (himalaya IMAP pre-gate)",
-  "openclaw-portfolio-wrapper.sh": "Portfolio analysis job",
-  "sync-rules.sh": "Syncs config rules to deployed location",
-};
-
-export async function getExpectedCronEntries(): Promise<typeof EXPECTED_CRON_ENTRIES> {
-  const baseline = [...EXPECTED_CRON_ENTRIES];
+export async function getExpectedCronEntries(): Promise<CronEntryDef[]> {
   try {
-    const { readFile } = await import("fs/promises");
     const raw = await readFile(REGISTERED_AUTOMATIONS_FILE, "utf-8");
     const reg = JSON.parse(raw);
     if (reg.automations && Array.isArray(reg.automations)) {
-      for (const auto of reg.automations) {
-        baseline.push({
-          script: auto.script,
-          match: auto.match,
-          schedule: auto.schedule,
-          command: auto.command,
-        });
-      }
+      return reg.automations.map((a: any) => ({
+        script: a.script,
+        match: a.match,
+        schedule: a.schedule,
+        command: a.command,
+      }));
     }
   } catch {
-    // File doesn't exist yet — that's fine, just use baseline
+    // File doesn't exist — no expected entries
   }
-  return baseline;
+  return [];
 }
 
 export async function getRegisteredAutomations(): Promise<any[]> {
   try {
-    const { readFile } = await import("fs/promises");
     const raw = await readFile(REGISTERED_AUTOMATIONS_FILE, "utf-8");
     const reg = JSON.parse(raw);
     return reg.automations || [];
   } catch {
     return [];
   }
+}
+
+// --- Crontab PATH line (discovered, not hardcoded) ---
+
+export async function getCrontabPathLine(): Promise<string> {
+  try {
+    const { safeExec } = await import("./lib/exec.js");
+    const result = await safeExec("crontab", ["-l"]);
+    if (result.exitCode === 0) {
+      const pathLine = result.stdout.split("\n").find((l) => l.startsWith("PATH="));
+      if (pathLine) return pathLine;
+    }
+  } catch {}
+  // Build from current process PATH
+  const envPath = process.env.PATH || "/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin";
+  return `PATH=${envPath}`;
+}
+
+// --- Script metadata (from dashboard state file) ---
+
+interface ScriptMeta {
+  description?: string;
+  logPattern?: string;
+}
+
+interface ScriptMetadataFile {
+  scripts: Record<string, ScriptMeta>;
+}
+
+let metadataCache: ScriptMetadataFile | null = null;
+let metadataCacheTime = 0;
+const METADATA_CACHE_TTL = 10_000; // 10 seconds
+
+async function loadScriptMetadata(): Promise<ScriptMetadataFile> {
+  const now = Date.now();
+  if (metadataCache && now - metadataCacheTime < METADATA_CACHE_TTL) {
+    return metadataCache;
+  }
+  try {
+    const raw = await readFile(SCRIPT_METADATA_FILE, "utf-8");
+    metadataCache = JSON.parse(raw);
+    metadataCacheTime = now;
+    return metadataCache!;
+  } catch {
+    metadataCache = { scripts: {} };
+    metadataCacheTime = now;
+    return metadataCache;
+  }
+}
+
+export async function getScriptLogMap(): Promise<Record<string, string | ((date: Date) => string)>> {
+  const meta = await loadScriptMetadata();
+  const map: Record<string, string | ((date: Date) => string)> = {};
+  for (const [script, info] of Object.entries(meta.scripts)) {
+    if (!info.logPattern) continue;
+    if (info.logPattern.includes("YYYY")) {
+      // Date-based pattern — return a function
+      const pattern = info.logPattern;
+      map[script] = (d: Date) =>
+        pattern
+          .replace("YYYY", String(d.getFullYear()))
+          .replace("MM", String(d.getMonth() + 1).padStart(2, "0"))
+          .replace("DD", String(d.getDate()).padStart(2, "0"));
+    } else {
+      map[script] = info.logPattern;
+    }
+  }
+  return map;
+}
+
+export async function getScriptDescriptions(): Promise<Record<string, string>> {
+  const meta = await loadScriptMetadata();
+  const descs: Record<string, string> = {};
+  for (const [script, info] of Object.entries(meta.scripts)) {
+    if (info.description) descs[script] = info.description;
+  }
+  return descs;
+}
+
+export async function registerScriptMetadata(
+  name: string,
+  description: string,
+  logPattern?: string,
+): Promise<void> {
+  const meta = await loadScriptMetadata();
+  meta.scripts[name] = { description, logPattern };
+  await mkdir(DASHBOARD_STATE_DIR, { recursive: true });
+  await writeFile(SCRIPT_METADATA_FILE, JSON.stringify(meta, null, 2));
+  // Invalidate cache
+  metadataCache = meta;
+  metadataCacheTime = Date.now();
 }
 
 export const ALLOWED_BINARIES = new Set([

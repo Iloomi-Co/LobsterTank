@@ -265,6 +265,7 @@ async function scanMissingSafeguards(
     const target = manifest.targets?.find(
       (t: any) => t.workspace === ws.name || t.path?.includes(ws.path),
     );
+    const agentType: string = target?.agentType ?? "interactive";
     const requiredRules: string[] = target?.requiredRules ?? ruleBlocks.map((r: any) => r.id);
 
     const missingRules: string[] = [];
@@ -272,21 +273,33 @@ async function scanMissingSafeguards(
       const rule = ruleBlocks.find((r: any) => r.id === ruleId);
       if (!rule) continue;
 
-      // Fix 4: Match sync-rules.sh behavior — check for section header first,
-      // then validate keywords only if header exists
-      const sectionHeader = `## ${rule.title}`;
-      if (!content.includes(sectionHeader)) {
-        missingRules.push(ruleId);
-        continue;
-      }
+      // For non-interactive agents, check if the template-based section header
+      // exists. Templates use short titles (e.g. "## Scheduling Rules") instead
+      // of the full interactive title (e.g. "## Scheduling Rules (MANDATORY)").
+      const template: string | null = rule.templates?.[agentType] ?? null;
 
-      // Section header exists — now check validation keywords
-      const mustContain: string[] = rule.validation?.mustContain ?? [];
-      const allPresent = mustContain.length === 0 || mustContain.every((s: string) =>
-        content.toLowerCase().includes(s.toLowerCase()),
-      );
-      if (!allPresent) {
+      if (template) {
+        // Extract the first line of the template as the section header
+        const templateHeader = template.split("\n")[0].trim();
+        if (content.includes(templateHeader)) continue; // present, skip
+        // Also check for the full interactive title as fallback
+        if (content.includes(`## ${rule.title}`)) continue;
         missingRules.push(ruleId);
+      } else {
+        // Interactive agent — check for section header then validate keywords
+        const sectionHeader = `## ${rule.title}`;
+        if (!content.includes(sectionHeader)) {
+          missingRules.push(ruleId);
+          continue;
+        }
+
+        const mustContain: string[] = rule.validation?.mustContain ?? [];
+        const allPresent = mustContain.length === 0 || mustContain.every((s: string) =>
+          content.toLowerCase().includes(s.toLowerCase()),
+        );
+        if (!allPresent) {
+          missingRules.push(ruleId);
+        }
       }
     }
 
@@ -323,7 +336,7 @@ function scanLlmSpawningCrons(crontabLines: string[]): Finding[] {
     const spawnsLlm =
       line.includes("openclaw agent") ||
       line.includes("openclaw-agent-wrapper") ||
-      line.includes("openclaw-portfolio-wrapper");
+      line.includes("-wrapper.sh");
 
     if (!spawnsLlm) continue;
 

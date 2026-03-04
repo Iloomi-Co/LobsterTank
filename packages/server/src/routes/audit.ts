@@ -9,7 +9,7 @@ import { logAction } from "../lib/action-logger.js";
 import {
   OC_HOME, OC_GATEWAY_PORT, DEPLOY_SCRIPTS, DEPLOY_CONFIG,
   BIN_DIR, DEPLOYED_CONFIG_DIR, OC_LOGS_DIR,
-  REGISTRY_FILE, CRONTAB_PATH_LINE, getExpectedCronEntries,
+  REGISTRY_FILE, getCrontabPathLine, getExpectedCronEntries,
 } from "../config.js";
 import { ensureGitRepo, isGitRepo, isClean, snapshot, getLastCommit } from "../lib/git.js";
 
@@ -417,7 +417,8 @@ auditRoutes.post("/apply", async (req, res) => {
 
       // Ensure PATH line
       if (!currentCrontab.includes("PATH=")) {
-        currentCrontab = CRONTAB_PATH_LINE + "\n" + currentCrontab;
+        const pathLine = await getCrontabPathLine();
+        currentCrontab = pathLine + "\n" + currentCrontab;
       }
 
       // Add missing entries
