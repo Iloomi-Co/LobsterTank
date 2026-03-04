@@ -113,6 +113,34 @@ export const api = {
   schedulerScript: (scriptName: string) =>
     request<{ content: string; path: string }>(`/scheduler/script/${encodeURIComponent(scriptName)}`),
 
+  // Step 8: Task Feedback Loop
+  schedulerPrompts: (scriptName: string) =>
+    request<{ prompts: any[]; heredocs: any[] }>(`/scheduler/script/${encodeURIComponent(scriptName)}/prompts`),
+  schedulerSubmitFeedback: (body: {
+    scriptName: string;
+    rating: "up" | "down";
+    suggestion?: string;
+    promptHash?: string;
+    heredocId?: string;
+  }) =>
+    request<any>("/scheduler/feedback", { method: "POST", body: JSON.stringify(body) }),
+  schedulerFeedback: (scriptName: string) =>
+    request<any[]>(`/scheduler/feedback/${encodeURIComponent(scriptName)}`),
+  schedulerRewritePrompt: (scriptName: string, suggestion: string, heredocId?: string) =>
+    request<any>(`/scheduler/script/${encodeURIComponent(scriptName)}/rewrite`, {
+      method: "POST",
+      body: JSON.stringify({ suggestion, heredocId }),
+    }),
+  schedulerApplyRewrite: (scriptName: string, heredocId: string, newContent: string, feedbackId?: string) =>
+    request<any>(`/scheduler/script/${encodeURIComponent(scriptName)}/apply-rewrite`, {
+      method: "POST",
+      body: JSON.stringify({ heredocId, newContent, feedbackId }),
+    }),
+  schedulerRevertRewrite: (scriptName: string) =>
+    request<any>(`/scheduler/script/${encodeURIComponent(scriptName)}/revert-rewrite`, {
+      method: "POST",
+    }),
+
   // Step 5: Determinism Audit
   determinismScan: () => request<any>("/determinism/scan"),
   determinismDeepScan: (findingIds?: string[]) =>

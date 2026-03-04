@@ -14,6 +14,10 @@ import { safeExec } from "../lib/exec.js";
 import { readTextFile, listDir, fileStat } from "../lib/file-reader.js";
 import { parsePlistFile } from "../lib/parse-plist.js";
 import { logAction } from "../lib/action-logger.js";
+import { extractHeredocs, extractPrompts, replaceHeredocContent } from "../lib/prompt-extractor.js";
+import { saveFeedback, getFeedback, markFeedbackApplied, hashPrompt, type FeedbackEntry } from "../lib/feedback-store.js";
+import { rewritePrompt } from "../lib/prompt-rewriter.js";
+import { ensureGitRepo, snapshot, revertLast } from "../lib/git.js";
 import {
   OC_HOME,
   OC_LOGS_DIR,
@@ -272,13 +276,26 @@ async function parseLastRun(logFileName: string | null): Promise<string | null> 
   const { data } = await readTextFile(logPath);
   if (!data) return null;
   const lines = data.trim().split("\n");
-  // Walk backwards looking for a timestamp
-  for (let i = lines.length - 1; i >= Math.max(0, lines.length - 20); i--) {
-    const ts = lines[i].match(/\d{4}-\d{2}-\d{2}[\sT]\d{2}:\d{2}/);
-    if (ts) return ts[0];
-    const bracket = lines[i].match(/\[(\d{4}-\d{2}-\d{2}[\sT]\d{2}:\d{2}[^\]]*)\]/);
+
+  const TS_RE = /\d{4}-\d{2}-\d{2}[\sT]\d{2}:\d{2}/;
+  const BRACKET_RE = /\[(\d{4}-\d{2}-\d{2}[\sT]\d{2}:\d{2}[^\]]*)\]/;
+
+  // Walk backwards from end looking for the most recent timestamp
+  for (let i = lines.length - 1; i >= Math.max(0, lines.length - 50); i--) {
+    const bracket = lines[i].match(BRACKET_RE);
     if (bracket) return bracket[1];
+    const ts = lines[i].match(TS_RE);
+    if (ts) return ts[0];
   }
+
+  // Fallback: scan from beginning (date-based logs with LLM output at the end)
+  for (let i = 0; i < Math.min(lines.length, 20); i++) {
+    const bracket = lines[i].match(BRACKET_RE);
+    if (bracket) return bracket[1];
+    const ts = lines[i].match(TS_RE);
+    if (ts) return ts[0];
+  }
+
   return null;
 }
 
@@ -758,6 +775,169 @@ schedulerRoutes.post("/run-script", async (req, res) => {
   }
 });
 
+// --- GET /script/:scriptName/prompts --- (Phase 1, must precede generic /script/:scriptName)
+
+schedulerRoutes.get("/script/:scriptName/prompts", async (req, res) => {
+  const { scriptName } = req.params;
+
+  if (!scriptName.endsWith(".sh") || scriptName.includes("/") || scriptName.includes("..")) {
+    res.status(400).json({ ok: false, error: "Invalid script name", timestamp: new Date().toISOString() });
+    return;
+  }
+
+  try {
+    const scriptPath = join(BIN_DIR, scriptName);
+    const { data: content } = await readTextFile(scriptPath);
+
+    if (!content) {
+      res.json({ ok: true, data: { prompts: [], heredocs: [] }, timestamp: new Date().toISOString() });
+      return;
+    }
+
+    const heredocs = extractHeredocs(content);
+    const prompts = heredocs.filter((b) => b.isPromptLikely);
+
+    res.json({
+      ok: true,
+      data: { prompts, heredocs },
+      timestamp: new Date().toISOString(),
+    });
+  } catch (e: any) {
+    res.json({ ok: false, error: e.message, timestamp: new Date().toISOString() });
+  }
+});
+
+// --- POST /script/:scriptName/rewrite --- (Phase 4, must precede generic /script/:scriptName)
+
+schedulerRoutes.post("/script/:scriptName/rewrite", async (req, res) => {
+  const { scriptName } = req.params;
+  const { suggestion, heredocId } = req.body ?? {};
+
+  if (!scriptName.endsWith(".sh") || scriptName.includes("/") || scriptName.includes("..")) {
+    res.status(400).json({ ok: false, error: "Invalid script name", timestamp: new Date().toISOString() });
+    return;
+  }
+
+  if (!suggestion || typeof suggestion !== "string") {
+    res.status(400).json({ ok: false, error: "Missing suggestion", timestamp: new Date().toISOString() });
+    return;
+  }
+
+  try {
+    const scriptPath = join(BIN_DIR, scriptName);
+    const { data: content } = await readTextFile(scriptPath);
+
+    if (!content) {
+      res.json({ ok: false, error: "Script not found", timestamp: new Date().toISOString() });
+      return;
+    }
+
+    const heredocs = extractHeredocs(content);
+    const target = heredocId
+      ? heredocs.find((b) => b.id === heredocId)
+      : heredocs.find((b) => b.isPromptLikely);
+
+    if (!target) {
+      res.json({ ok: false, error: "No extractable prompt found", timestamp: new Date().toISOString() });
+      return;
+    }
+
+    await logAction("PROMPT_REWRITE", `${scriptName}: heredoc ${target.id}`);
+
+    const result = await rewritePrompt(
+      target.content,
+      suggestion,
+      scriptName,
+      target.containsVariables,
+    );
+
+    res.json({
+      ok: true,
+      data: { ...result, heredocId: target.id },
+      timestamp: new Date().toISOString(),
+    });
+  } catch (e: any) {
+    res.json({ ok: false, error: e.message, timestamp: new Date().toISOString() });
+  }
+});
+
+// --- POST /script/:scriptName/apply-rewrite --- (Phase 5, must precede generic /script/:scriptName)
+
+schedulerRoutes.post("/script/:scriptName/apply-rewrite", async (req, res) => {
+  const { scriptName } = req.params;
+  const { heredocId, newContent, feedbackId } = req.body ?? {};
+
+  if (!scriptName.endsWith(".sh") || scriptName.includes("/") || scriptName.includes("..")) {
+    res.status(400).json({ ok: false, error: "Invalid script name", timestamp: new Date().toISOString() });
+    return;
+  }
+
+  if (!heredocId || !newContent) {
+    res.status(400).json({ ok: false, error: "Missing heredocId or newContent", timestamp: new Date().toISOString() });
+    return;
+  }
+
+  try {
+    await ensureGitRepo(BIN_DIR);
+    const snap = await snapshot(BIN_DIR, `LobsterTank: pre-rewrite snapshot for ${scriptName}`);
+
+    const scriptPath = join(BIN_DIR, scriptName);
+    const { data: content } = await readTextFile(scriptPath);
+
+    if (!content) {
+      res.json({ ok: false, error: "Script not found", timestamp: new Date().toISOString() });
+      return;
+    }
+
+    const modified = replaceHeredocContent(content, heredocId, newContent);
+    await writeFile(scriptPath, modified);
+
+    const commitSnap = await snapshot(BIN_DIR, `LobsterTank: rewrite prompt in ${scriptName}`);
+
+    if (feedbackId) {
+      await markFeedbackApplied(scriptName, feedbackId, commitSnap?.hash ?? null);
+    }
+
+    await logAction("PROMPT_APPLY_REWRITE", `${scriptName}: heredoc ${heredocId}, commit ${commitSnap?.hash ?? "none"}`);
+
+    res.json({
+      ok: true,
+      data: {
+        applied: true,
+        commitHash: commitSnap?.hash ?? null,
+        preSnapshotHash: snap?.hash ?? null,
+      },
+      timestamp: new Date().toISOString(),
+    });
+  } catch (e: any) {
+    res.json({ ok: false, error: e.message, timestamp: new Date().toISOString() });
+  }
+});
+
+// --- POST /script/:scriptName/revert-rewrite --- (Phase 5, must precede generic /script/:scriptName)
+
+schedulerRoutes.post("/script/:scriptName/revert-rewrite", async (req, res) => {
+  const { scriptName } = req.params;
+
+  if (!scriptName.endsWith(".sh") || scriptName.includes("/") || scriptName.includes("..")) {
+    res.status(400).json({ ok: false, error: "Invalid script name", timestamp: new Date().toISOString() });
+    return;
+  }
+
+  try {
+    const reverted = await revertLast(BIN_DIR);
+    await logAction("PROMPT_REVERT_REWRITE", `${scriptName}: reverted=${reverted}`);
+
+    res.json({
+      ok: true,
+      data: { reverted },
+      timestamp: new Date().toISOString(),
+    });
+  } catch (e: any) {
+    res.json({ ok: false, error: e.message, timestamp: new Date().toISOString() });
+  }
+});
+
 // --- GET /script/:scriptName ---
 
 schedulerRoutes.get("/script/:scriptName", async (req, res) => {
@@ -822,6 +1002,55 @@ schedulerRoutes.get("/logs/:scriptName", async (req, res) => {
       data: { content: last50, lines: allLines.length },
       timestamp: new Date().toISOString(),
     });
+  } catch (e: any) {
+    res.json({ ok: false, error: e.message, timestamp: new Date().toISOString() });
+  }
+});
+
+// --- POST /feedback --- (Phase 2)
+
+schedulerRoutes.post("/feedback", async (req, res) => {
+  const { scriptName, rating, suggestion, promptHash: ph, heredocId } = req.body ?? {};
+
+  if (!scriptName || typeof scriptName !== "string") {
+    res.status(400).json({ ok: false, error: "Missing scriptName", timestamp: new Date().toISOString() });
+    return;
+  }
+  if (rating !== "up" && rating !== "down") {
+    res.status(400).json({ ok: false, error: "Invalid rating", timestamp: new Date().toISOString() });
+    return;
+  }
+
+  try {
+    const entry: FeedbackEntry = {
+      id: `fb-${Date.now()}`,
+      scriptName,
+      timestamp: new Date().toISOString(),
+      rating,
+      suggestion: suggestion ?? null,
+      promptHash: ph ?? "",
+      heredocId: heredocId ?? null,
+      applied: false,
+      rewriteSnapshot: null,
+    };
+
+    await saveFeedback(entry);
+    await logAction("FEEDBACK_SUBMIT", `${scriptName}: ${rating}${suggestion ? ` — ${suggestion.slice(0, 100)}` : ""}`);
+
+    res.json({ ok: true, data: entry, timestamp: new Date().toISOString() });
+  } catch (e: any) {
+    res.json({ ok: false, error: e.message, timestamp: new Date().toISOString() });
+  }
+});
+
+// --- GET /feedback/:scriptName --- (Phase 2)
+
+schedulerRoutes.get("/feedback/:scriptName", async (req, res) => {
+  const { scriptName } = req.params;
+
+  try {
+    const entries = await getFeedback(scriptName);
+    res.json({ ok: true, data: entries, timestamp: new Date().toISOString() });
   } catch (e: any) {
     res.json({ ok: false, error: e.message, timestamp: new Date().toISOString() });
   }

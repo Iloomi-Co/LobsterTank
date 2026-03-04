@@ -1,0 +1,127 @@
+.container {
+  padding: 14px 16px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  margin-top: 12px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.title {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.loading {
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+  padding: 12px 0;
+}
+
+.explanation {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  margin-bottom: 10px;
+  line-height: 1.4;
+}
+
+.confidence {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+
+.confidenceHigh {
+  color: var(--green);
+}
+
+.confidenceMedium {
+  color: var(--yellow);
+}
+
+.confidenceLow {
+  color: var(--red);
+}
+
+.diffSection {
+  margin-bottom: 12px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.acceptBtn {
+  padding: 6px 16px;
+  background: var(--green-dim);
+  border: 1px solid var(--green);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  color: var(--green);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.acceptBtn:hover {
+  opacity: 0.8;
+}
+
+.acceptBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.rejectBtn {
+  padding: 6px 16px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.rejectBtn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.successMsg {
+  font-size: var(--font-size-sm);
+  color: var(--green);
+  margin-top: 8px;
+}
+
+.revertBtn {
+  padding: 4px 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--red-dim);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  color: var(--red);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  margin-left: 8px;
+}
+
+.revertBtn:hover {
+  opacity: 0.8;
+}
+
+.error {
+  font-size: var(--font-size-sm);
+  color: var(--red);
+  margin-top: 8px;
+}

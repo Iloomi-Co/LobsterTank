@@ -1,0 +1,54 @@
+.container {
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  font-family: "SF Mono", "Fira Code", "Cascadia Code", monospace;
+  font-size: var(--font-size-xs);
+  background: var(--bg-primary);
+}
+
+.line {
+  display: flex;
+  padding: 1px 12px;
+  white-space: pre-wrap;
+  word-break: break-all;
+  line-height: 1.5;
+}
+
+.lineAdded {
+  composes: line;
+  background: var(--green-dim);
+  color: var(--green);
+}
+
+.lineRemoved {
+  composes: line;
+  background: var(--red-dim);
+  color: var(--red);
+}
+
+.lineContext {
+  composes: line;
+  color: var(--text-muted);
+}
+
+.lineNumber {
+  min-width: 36px;
+  text-align: right;
+  padding-right: 10px;
+  color: var(--text-muted);
+  user-select: none;
+  flex-shrink: 0;
+  opacity: 0.6;
+}
+
+.lineContent {
+  flex: 1;
+}
+
+.empty {
+  padding: 16px;
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+  text-align: center;
+}

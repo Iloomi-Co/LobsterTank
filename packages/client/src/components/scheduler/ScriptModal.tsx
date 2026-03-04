@@ -1,7 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { LogViewer } from "../shared/LogViewer.js";
 import { api } from "../../api/client.js";
 import { ScheduleEditor } from "./ScheduleEditor.js";
+import { FeedbackPanel } from "./FeedbackPanel.js";
+import { PromptTuner } from "./PromptTuner.js";
+import { FeedbackHistory } from "./FeedbackHistory.js";
 import styles from "./ScriptModal.module.css";
 
 interface ScriptModalProps {
@@ -21,6 +24,12 @@ export function ScriptModal({ scriptName, schedule, description, command, lineIn
   const [editorOpen, setEditorOpen] = useState(false);
   const [copied, setCopied] = useState(false);
 
+  const [prompts, setPrompts] = useState<any[]>([]);
+  const [feedbackEntries, setFeedbackEntries] = useState<any[]>([]);
+  const [tunerSuggestion, setTunerSuggestion] = useState<string | null>(null);
+  const [tunerHeredocId, setTunerHeredocId] = useState<string | undefined>(undefined);
+  const [lastFeedbackId, setLastFeedbackId] = useState<string | undefined>(undefined);
+
   const handleCopy = async () => {
     if (!content) return;
     try {
@@ -35,6 +44,13 @@ export function ScriptModal({ scriptName, schedule, description, command, lineIn
     window.open(`vscode://file${scriptPath}`, "_blank");
   };
 
+  const loadFeedback = useCallback(async () => {
+    const res = await api.schedulerFeedback(scriptName);
+    if (res.ok && res.data) {
+      setFeedbackEntries(res.data);
+    }
+  }, [scriptName]);
+
   useEffect(() => {
     api.schedulerScript(scriptName).then((res) => {
       if (res.ok && res.data) {
@@ -45,7 +61,43 @@ export function ScriptModal({ scriptName, schedule, description, command, lineIn
       }
       setLoading(false);
     });
-  }, [scriptName]);
+
+    api.schedulerPrompts(scriptName).then((res) => {
+      if (res.ok && res.data) {
+        setPrompts(res.data.prompts);
+      }
+    });
+
+    loadFeedback();
+  }, [scriptName, loadFeedback]);
+
+  const handleFeedbackSubmitted = async () => {
+    const res = await api.schedulerFeedback(scriptName);
+    if (res.ok && res.data && res.data.length > 0) {
+      setFeedbackEntries(res.data);
+      setLastFeedbackId(res.data[res.data.length - 1].id);
+    }
+  };
+
+  const handleRewriteRequested = (suggestion: string, heredocId?: string) => {
+    setTunerSuggestion(suggestion);
+    setTunerHeredocId(heredocId);
+  };
+
+  const handleTunerDone = () => {
+    // Reload script content and feedback
+    api.schedulerScript(scriptName).then((res) => {
+      if (res.ok && res.data) {
+        setContent(res.data.content);
+      }
+    });
+    loadFeedback();
+  };
+
+  const handleTunerClose = () => {
+    setTunerSuggestion(null);
+    setTunerHeredocId(undefined);
+  };
 
   return (
     <div className={styles.overlay} onClick={onClose}>
@@ -101,6 +153,34 @@ export function ScriptModal({ scriptName, schedule, description, command, lineIn
             <LogViewer content={content ?? ""} maxLines={500} />
           )}
         </div>
+
+        {!loading && (
+          <>
+            <FeedbackPanel
+              scriptName={scriptName}
+              prompts={prompts}
+              onFeedbackSubmitted={handleFeedbackSubmitted}
+              onRewriteRequested={handleRewriteRequested}
+            />
+
+            {tunerSuggestion && (
+              <PromptTuner
+                scriptName={scriptName}
+                suggestion={tunerSuggestion}
+                heredocId={tunerHeredocId}
+                feedbackId={lastFeedbackId}
+                onDone={handleTunerDone}
+                onClose={handleTunerClose}
+              />
+            )}
+
+            <FeedbackHistory
+              scriptName={scriptName}
+              entries={feedbackEntries}
+              onReverted={handleTunerDone}
+            />
+          </>
+        )}
       </div>
 
       {editorOpen && (
