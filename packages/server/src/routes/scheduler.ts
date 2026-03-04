@@ -22,6 +22,7 @@ import {
   OC_HOME,
   OC_LOGS_DIR,
   BIN_DIR,
+  DASHBOARD_STATE_DIR,
   getScriptLogMap,
   getScriptDescriptions,
   getRegisteredAutomations,
@@ -399,6 +400,15 @@ async function parseCrontab() {
     const weekAgoStr = fmtDate(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
     const runsThisWeek = runHistory.filter((r) => r.timestamp >= weekAgoStr).length;
 
+    // Detect if script has a heredoc prompt (for feedback UI)
+    let hasPrompt = false;
+    if (script.endsWith(".sh") && scriptExists) {
+      const { data: scriptContent } = await readTextFile(scriptPath);
+      if (scriptContent) {
+        hasPrompt = extractPrompts(scriptContent).length > 0;
+      }
+    }
+
     const entry: SchedulerCrontabEntry = {
       lineIndex: i,
       schedule,
@@ -412,6 +422,7 @@ async function parseCrontab() {
       scriptPath: scriptPath,
       runHistory,
       costEstimate: buildCostEstimate(script, cronCosts, runsThisWeek),
+      hasPrompt,
     };
 
     if (category === "agent" && reg) {
@@ -811,7 +822,7 @@ schedulerRoutes.get("/script/:scriptName/prompts", async (req, res) => {
 
 schedulerRoutes.post("/script/:scriptName/rewrite", async (req, res) => {
   const { scriptName } = req.params;
-  const { suggestion, heredocId } = req.body ?? {};
+  const { suggestion, heredocId, lastOutput } = req.body ?? {};
 
   if (!scriptName.endsWith(".sh") || scriptName.includes("/") || scriptName.includes("..")) {
     res.status(400).json({ ok: false, error: "Invalid script name", timestamp: new Date().toISOString() });
@@ -844,11 +855,21 @@ schedulerRoutes.post("/script/:scriptName/rewrite", async (req, res) => {
 
     await logAction("PROMPT_REWRITE", `${scriptName}: heredoc ${target.id}`);
 
+    // Gather feedback history for context
+    const history = await getFeedback(scriptName);
+    const recentHistory = history.slice(-5).map((h) => ({
+      rating: h.rating,
+      suggestion: h.suggestion,
+      timestamp: h.timestamp,
+    }));
+
     const result = await rewritePrompt(
       target.content,
       suggestion,
       scriptName,
       target.containsVariables,
+      lastOutput ?? null,
+      recentHistory,
     );
 
     res.json({
@@ -865,7 +886,7 @@ schedulerRoutes.post("/script/:scriptName/rewrite", async (req, res) => {
 
 schedulerRoutes.post("/script/:scriptName/apply-rewrite", async (req, res) => {
   const { scriptName } = req.params;
-  const { heredocId, newContent, feedbackId } = req.body ?? {};
+  const { heredocId, newContent, feedbackId, changeDescription } = req.body ?? {};
 
   if (!scriptName.endsWith(".sh") || scriptName.includes("/") || scriptName.includes("..")) {
     res.status(400).json({ ok: false, error: "Invalid script name", timestamp: new Date().toISOString() });
@@ -892,10 +913,11 @@ schedulerRoutes.post("/script/:scriptName/apply-rewrite", async (req, res) => {
     const modified = replaceHeredocContent(content, heredocId, newContent);
     await writeFile(scriptPath, modified);
 
-    const commitSnap = await snapshot(BIN_DIR, `LobsterTank: rewrite prompt in ${scriptName}`);
+    const desc = changeDescription ?? "prompt edit";
+    const commitSnap = await snapshot(BIN_DIR, `LobsterTank: ${desc} in ${scriptName}`);
 
     if (feedbackId) {
-      await markFeedbackApplied(scriptName, feedbackId, commitSnap?.hash ?? null);
+      await markFeedbackApplied(scriptName, feedbackId, commitSnap?.hash ?? null, desc);
     }
 
     await logAction("PROMPT_APPLY_REWRITE", `${scriptName}: heredoc ${heredocId}, commit ${commitSnap?.hash ?? "none"}`);
@@ -1010,7 +1032,7 @@ schedulerRoutes.get("/logs/:scriptName", async (req, res) => {
 // --- POST /feedback --- (Phase 2)
 
 schedulerRoutes.post("/feedback", async (req, res) => {
-  const { scriptName, rating, suggestion, promptHash: ph, heredocId } = req.body ?? {};
+  const { scriptName, rating, suggestion, promptHash: ph, heredocId, lastOutputSnippet } = req.body ?? {};
 
   if (!scriptName || typeof scriptName !== "string") {
     res.status(400).json({ ok: false, error: "Missing scriptName", timestamp: new Date().toISOString() });
@@ -1028,10 +1050,12 @@ schedulerRoutes.post("/feedback", async (req, res) => {
       timestamp: new Date().toISOString(),
       rating,
       suggestion: suggestion ?? null,
+      lastOutputSnippet: typeof lastOutputSnippet === "string" ? lastOutputSnippet.slice(0, 500) : null,
       promptHash: ph ?? "",
       heredocId: heredocId ?? null,
       applied: false,
       rewriteSnapshot: null,
+      changeDescription: null,
     };
 
     await saveFeedback(entry);
@@ -1043,6 +1067,23 @@ schedulerRoutes.post("/feedback", async (req, res) => {
   }
 });
 
+// --- GET /feedback-history --- All scripts feedback (must precede :scriptName)
+
+schedulerRoutes.get("/feedback-history", async (_req, res) => {
+  try {
+    const { entries: files } = await listDir(join(DASHBOARD_STATE_DIR, "feedback"));
+    const allFeedback: Record<string, any[]> = {};
+    for (const file of files) {
+      if (!file.endsWith(".json")) continue;
+      const scriptName = file.replace(".json", "");
+      allFeedback[scriptName] = await getFeedback(scriptName);
+    }
+    res.json({ ok: true, data: allFeedback, timestamp: new Date().toISOString() });
+  } catch (e: any) {
+    res.json({ ok: true, data: {}, timestamp: new Date().toISOString() });
+  }
+});
+
 // --- GET /feedback/:scriptName --- (Phase 2)
 
 schedulerRoutes.get("/feedback/:scriptName", async (req, res) => {
@@ -1051,6 +1092,25 @@ schedulerRoutes.get("/feedback/:scriptName", async (req, res) => {
   try {
     const entries = await getFeedback(scriptName);
     res.json({ ok: true, data: entries, timestamp: new Date().toISOString() });
+  } catch (e: any) {
+    res.json({ ok: false, error: e.message, timestamp: new Date().toISOString() });
+  }
+});
+
+// --- GET /feedback-diff/:commitHash --- Git diff for a feedback commit
+
+schedulerRoutes.get("/feedback-diff/:commitHash", async (req, res) => {
+  const { commitHash } = req.params;
+
+  if (!/^[a-f0-9]{4,40}$/.test(commitHash)) {
+    res.status(400).json({ ok: false, error: "Invalid commit hash", timestamp: new Date().toISOString() });
+    return;
+  }
+
+  try {
+    const { getDiff } = await import("../lib/git.js");
+    const diff = await getDiff(BIN_DIR, `${commitHash}~1`);
+    res.json({ ok: true, data: { diff }, timestamp: new Date().toISOString() });
   } catch (e: any) {
     res.json({ ok: false, error: e.message, timestamp: new Date().toISOString() });
   }

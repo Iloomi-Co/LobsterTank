@@ -26,8 +26,10 @@ export function ScriptModal({ scriptName, schedule, description, command, lineIn
 
   const [prompts, setPrompts] = useState<any[]>([]);
   const [feedbackEntries, setFeedbackEntries] = useState<any[]>([]);
+  const [lastOutputSnippet, setLastOutputSnippet] = useState<string | null>(null);
   const [tunerSuggestion, setTunerSuggestion] = useState<string | null>(null);
   const [tunerHeredocId, setTunerHeredocId] = useState<string | undefined>(undefined);
+  const [tunerLastOutput, setTunerLastOutput] = useState<string | undefined>(undefined);
   const [lastFeedbackId, setLastFeedbackId] = useState<string | undefined>(undefined);
 
   const handleCopy = async () => {
@@ -68,6 +70,15 @@ export function ScriptModal({ scriptName, schedule, description, command, lineIn
       }
     });
 
+    // Fetch last run output for feedback context
+    api.schedulerLogs(scriptName).then((res) => {
+      if (res.ok && res.data && res.data.content) {
+        // Take last ~2000 chars as the snippet
+        const full = res.data.content;
+        setLastOutputSnippet(full.length > 2000 ? full.slice(-2000) : full);
+      }
+    });
+
     loadFeedback();
   }, [scriptName, loadFeedback]);
 
@@ -79,9 +90,10 @@ export function ScriptModal({ scriptName, schedule, description, command, lineIn
     }
   };
 
-  const handleRewriteRequested = (suggestion: string, heredocId?: string) => {
+  const handleRewriteRequested = (suggestion: string, heredocId?: string, lastOutput?: string) => {
     setTunerSuggestion(suggestion);
     setTunerHeredocId(heredocId);
+    setTunerLastOutput(lastOutput);
   };
 
   const handleTunerDone = () => {
@@ -97,6 +109,7 @@ export function ScriptModal({ scriptName, schedule, description, command, lineIn
   const handleTunerClose = () => {
     setTunerSuggestion(null);
     setTunerHeredocId(undefined);
+    setTunerLastOutput(undefined);
   };
 
   return (
@@ -159,6 +172,7 @@ export function ScriptModal({ scriptName, schedule, description, command, lineIn
             <FeedbackPanel
               scriptName={scriptName}
               prompts={prompts}
+              lastOutputSnippet={lastOutputSnippet}
               onFeedbackSubmitted={handleFeedbackSubmitted}
               onRewriteRequested={handleRewriteRequested}
             />
@@ -169,6 +183,7 @@ export function ScriptModal({ scriptName, schedule, description, command, lineIn
                 suggestion={tunerSuggestion}
                 heredocId={tunerHeredocId}
                 feedbackId={lastFeedbackId}
+                lastOutput={tunerLastOutput}
                 onDone={handleTunerDone}
                 onClose={handleTunerClose}
               />

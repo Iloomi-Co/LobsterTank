@@ -22,6 +22,7 @@ interface CrontabEntry {
     weeklyTotal: number | null;
     runsThisWeek: number;
   } | null;
+  hasPrompt: boolean;
   registrationMeta?: {
     agent: string;
     description: string;

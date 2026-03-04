@@ -2,14 +2,17 @@ import { useState } from "react";
 import { api } from "../../api/client.js";
 import styles from "./FeedbackPanel.module.css";
 
+const QUICK_CHIPS = ["Too verbose", "Too brief", "Missing details", "Wrong format"];
+
 interface FeedbackPanelProps {
   scriptName: string;
   prompts: any[];
+  lastOutputSnippet?: string | null;
   onFeedbackSubmitted: () => void;
-  onRewriteRequested: (suggestion: string, heredocId?: string) => void;
+  onRewriteRequested: (suggestion: string, heredocId?: string, lastOutput?: string) => void;
 }
 
-export function FeedbackPanel({ scriptName, prompts, onFeedbackSubmitted, onRewriteRequested }: FeedbackPanelProps) {
+export function FeedbackPanel({ scriptName, prompts, lastOutputSnippet, onFeedbackSubmitted, onRewriteRequested }: FeedbackPanelProps) {
   const [rating, setRating] = useState<"up" | "down" | null>(null);
   const [suggestion, setSuggestion] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -35,6 +38,7 @@ export function FeedbackPanel({ scriptName, prompts, onFeedbackSubmitted, onRewr
       suggestion: suggestion.trim() || undefined,
       promptHash: targetPrompt?.id,
       heredocId: targetPrompt?.id,
+      lastOutputSnippet: lastOutputSnippet ?? undefined,
     });
 
     setSubmitting(false);
@@ -43,15 +47,29 @@ export function FeedbackPanel({ scriptName, prompts, onFeedbackSubmitted, onRewr
       onFeedbackSubmitted();
 
       if (rating === "down" && suggestion.trim()) {
-        onRewriteRequested(suggestion.trim(), targetPrompt?.id);
+        onRewriteRequested(suggestion.trim(), targetPrompt?.id, lastOutputSnippet ?? undefined);
       }
     } else {
       setStatus(res.error ?? "Failed to save");
     }
   };
 
+  const handleChip = (chip: string) => {
+    setSuggestion((prev) => {
+      const trimmed = prev.trim();
+      return trimmed ? `${trimmed}. ${chip}` : chip;
+    });
+  };
+
   return (
     <div className={styles.panel}>
+      {lastOutputSnippet && (
+        <div className={styles.lastOutput}>
+          <span className={styles.lastOutputLabel}>Last output:</span>
+          <pre className={styles.lastOutputPre}>{lastOutputSnippet}</pre>
+        </div>
+      )}
+
       <div className={styles.ratingRow}>
         <span className={styles.label}>Last Run:</span>
         <button
@@ -72,6 +90,13 @@ export function FeedbackPanel({ scriptName, prompts, onFeedbackSubmitted, onRewr
 
       {rating === "down" && (
         <div className={styles.suggestionArea}>
+          <div className={styles.chipRow}>
+            {QUICK_CHIPS.map((chip) => (
+              <button key={chip} className={styles.chip} onClick={() => handleChip(chip)}>
+                {chip}
+              </button>
+            ))}
+          </div>
           <textarea
             className={styles.textarea}
             placeholder="How should the prompt be improved?"

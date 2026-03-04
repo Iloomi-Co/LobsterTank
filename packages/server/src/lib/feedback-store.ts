@@ -12,10 +12,12 @@ export interface FeedbackEntry {
   timestamp: string;
   rating: "up" | "down";
   suggestion: string | null;
+  lastOutputSnippet: string | null;
   promptHash: string;
   heredocId: string | null;
   applied: boolean;
   rewriteSnapshot: string | null;
+  changeDescription: string | null;
 }
 
 function feedbackPath(scriptName: string): string {
@@ -54,12 +56,14 @@ export async function markFeedbackApplied(
   scriptName: string,
   feedbackId: string,
   snapshotHash: string | null,
+  changeDescription?: string,
 ): Promise<void> {
   const entries = await readFeedbackFile(scriptName);
   const entry = entries.find((e) => e.id === feedbackId);
   if (entry) {
     entry.applied = true;
     entry.rewriteSnapshot = snapshotHash;
+    if (changeDescription) entry.changeDescription = changeDescription;
     await writeFeedbackFile(scriptName, entries);
   }
 }

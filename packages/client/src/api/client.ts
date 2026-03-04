@@ -122,19 +122,24 @@ export const api = {
     suggestion?: string;
     promptHash?: string;
     heredocId?: string;
+    lastOutputSnippet?: string;
   }) =>
     request<any>("/scheduler/feedback", { method: "POST", body: JSON.stringify(body) }),
   schedulerFeedback: (scriptName: string) =>
     request<any[]>(`/scheduler/feedback/${encodeURIComponent(scriptName)}`),
-  schedulerRewritePrompt: (scriptName: string, suggestion: string, heredocId?: string) =>
+  schedulerFeedbackAll: () =>
+    request<Record<string, any[]>>("/scheduler/feedback-history"),
+  schedulerFeedbackDiff: (commitHash: string) =>
+    request<{ diff: string }>(`/scheduler/feedback-diff/${encodeURIComponent(commitHash)}`),
+  schedulerRewritePrompt: (scriptName: string, suggestion: string, heredocId?: string, lastOutput?: string) =>
     request<any>(`/scheduler/script/${encodeURIComponent(scriptName)}/rewrite`, {
       method: "POST",
-      body: JSON.stringify({ suggestion, heredocId }),
+      body: JSON.stringify({ suggestion, heredocId, lastOutput }),
     }),
-  schedulerApplyRewrite: (scriptName: string, heredocId: string, newContent: string, feedbackId?: string) =>
+  schedulerApplyRewrite: (scriptName: string, heredocId: string, newContent: string, feedbackId?: string, changeDescription?: string) =>
     request<any>(`/scheduler/script/${encodeURIComponent(scriptName)}/apply-rewrite`, {
       method: "POST",
-      body: JSON.stringify({ heredocId, newContent, feedbackId }),
+      body: JSON.stringify({ heredocId, newContent, feedbackId, changeDescription }),
     }),
   schedulerRevertRewrite: (scriptName: string) =>
     request<any>(`/scheduler/script/${encodeURIComponent(scriptName)}/revert-rewrite`, {

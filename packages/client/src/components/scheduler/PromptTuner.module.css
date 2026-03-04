@@ -120,6 +120,27 @@
   opacity: 0.8;
 }
 
+.acceptRunBtn {
+  padding: 6px 16px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--green);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  color: var(--green);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.acceptRunBtn:hover {
+  opacity: 0.8;
+}
+
+.runResult {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
 .error {
   font-size: var(--font-size-sm);
   color: var(--red);

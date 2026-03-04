@@ -3,22 +3,24 @@ import { api } from "../../api/client.js";
 import { DiffViewer } from "./DiffViewer.js";
 import styles from "./PromptTuner.module.css";
 
-type TunerState = "idle" | "rewriting" | "reviewing" | "applying" | "done" | "error";
+type TunerState = "idle" | "rewriting" | "reviewing" | "applying" | "running" | "done" | "error";
 
 interface PromptTunerProps {
   scriptName: string;
   suggestion: string;
   heredocId?: string;
   feedbackId?: string;
+  lastOutput?: string;
   onDone: () => void;
   onClose: () => void;
 }
 
-export function PromptTuner({ scriptName, suggestion, heredocId, feedbackId, onDone, onClose }: PromptTunerProps) {
+export function PromptTuner({ scriptName, suggestion, heredocId, feedbackId, lastOutput, onDone, onClose }: PromptTunerProps) {
   const [state, setState] = useState<TunerState>("idle");
   const [rewriteData, setRewriteData] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [commitHash, setCommitHash] = useState<string | null>(null);
+  const [runResult, setRunResult] = useState<string | null>(null);
 
   useEffect(() => {
     startRewrite();
@@ -28,7 +30,7 @@ export function PromptTuner({ scriptName, suggestion, heredocId, feedbackId, onD
     setState("rewriting");
     setError(null);
 
-    const res = await api.schedulerRewritePrompt(scriptName, suggestion, heredocId);
+    const res = await api.schedulerRewritePrompt(scriptName, suggestion, heredocId, lastOutput);
     if (res.ok && res.data) {
       setRewriteData(res.data);
       setState("reviewing");
@@ -38,7 +40,7 @@ export function PromptTuner({ scriptName, suggestion, heredocId, feedbackId, onD
     }
   };
 
-  const handleAccept = async () => {
+  const applyRewrite = async () => {
     if (!rewriteData) return;
     setState("applying");
 
@@ -47,16 +49,41 @@ export function PromptTuner({ scriptName, suggestion, heredocId, feedbackId, onD
       rewriteData.heredocId,
       rewriteData.rewrittenContent,
       feedbackId,
+      rewriteData.explanation,
     );
 
     if (res.ok && res.data) {
       setCommitHash(res.data.commitHash);
-      setState("done");
-      onDone();
+      return true;
     } else {
       setError(res.error ?? "Apply failed");
       setState("error");
+      return false;
     }
+  };
+
+  const handleAccept = async () => {
+    const ok = await applyRewrite();
+    if (ok) {
+      setState("done");
+      onDone();
+    }
+  };
+
+  const handleAcceptAndRun = async () => {
+    const ok = await applyRewrite();
+    if (!ok) return;
+
+    setState("running");
+    const runRes = await api.schedulerRunScript(scriptName);
+    if (runRes.ok && runRes.data) {
+      const d = runRes.data as { exitCode: number; output: string };
+      setRunResult(d.exitCode === 0 ? "Script completed successfully" : `Script exited with code ${d.exitCode}`);
+    } else {
+      setRunResult("Failed to run script");
+    }
+    setState("done");
+    onDone();
   };
 
   const handleRevert = async () => {
@@ -107,6 +134,9 @@ export function PromptTuner({ scriptName, suggestion, heredocId, feedbackId, onD
             <button className={styles.acceptBtn} onClick={handleAccept}>
               Accept & Apply
             </button>
+            <button className={styles.acceptRunBtn} onClick={handleAcceptAndRun}>
+              Apply & Run Now
+            </button>
             <button className={styles.rejectBtn} onClick={onClose}>
               Reject
             </button>
@@ -118,11 +148,18 @@ export function PromptTuner({ scriptName, suggestion, heredocId, feedbackId, onD
         <div className={styles.loading}>Applying rewrite...</div>
       )}
 
+      {state === "running" && (
+        <div className={styles.loading}>Running script...</div>
+      )}
+
       {state === "done" && (
         <>
           <div className={styles.successMsg}>
             Prompt updated successfully{commitHash ? ` (commit ${commitHash})` : ""}
           </div>
+          {runResult && (
+            <div className={styles.runResult}>{runResult}</div>
+          )}
           <button className={styles.revertBtn} onClick={handleRevert}>
             Revert
           </button>

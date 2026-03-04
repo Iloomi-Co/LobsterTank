@@ -110,3 +110,51 @@
   color: var(--text-muted);
   font-style: italic;
 }
+
+.chipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.chip {
+  padding: 3px 10px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: 12px;
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.chip:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.lastOutput {
+  margin-bottom: 10px;
+}
+
+.lastOutputLabel {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  display: block;
+  margin-bottom: 4px;
+}
+
+.lastOutputPre {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  max-height: 120px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 0;
+}
