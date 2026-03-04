@@ -151,3 +151,88 @@
   padding: 28px;
   text-align: center;
 }
+
+.helplessnessAlert {
+  padding: 14px 18px;
+  background: color-mix(in srgb, var(--yellow) 8%, var(--bg-tertiary));
+  border: 1px solid color-mix(in srgb, var(--yellow) 30%, var(--border-primary));
+  border-radius: var(--radius-sm);
+  margin-bottom: 16px;
+}
+
+.helplessnessHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--font-size-sm);
+  color: var(--yellow);
+  margin-bottom: 8px;
+}
+
+.helplessnessIcon {
+  font-size: 16px;
+}
+
+.helplessnessDetail {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  padding: 6px 10px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  margin-bottom: 4px;
+}
+
+.helplessnessLabel {
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.helplessnessRec {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  margin-top: 6px;
+}
+
+.helplessnessActions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.forceSessionBtn {
+  padding: 6px 14px;
+  background: var(--yellow);
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--bg-primary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.forceSessionBtn:hover {
+  opacity: 0.85;
+}
+
+.forceSessionBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.editPromptBtn {
+  padding: 6px 14px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.editPromptBtn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}

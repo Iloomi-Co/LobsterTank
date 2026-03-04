@@ -27,6 +27,12 @@ import {
   getScriptDescriptions,
   getRegisteredAutomations,
 } from "../config.js";
+import {
+  checkHelplessness,
+  extractSessionIdPattern,
+  bumpSessionVersion,
+  type HelplessnessResult,
+} from "../lib/helplessness-detector.js";
 
 export const schedulerRoutes = Router();
 
@@ -40,6 +46,29 @@ const SYSTEM_SCRIPTS = new Set([
 ]);
 const ROGUE_BREADCRUMB = join(OC_HOME, "ROGUE_SERVICE_BLOCKED.md");
 const GATEWAY_LABEL = "ai.openclaw.gateway";
+
+// --- Helplessness detection cache (5-min TTL) ---
+
+const helplessnessCache = new Map<string, { result: HelplessnessResult; cachedAt: number }>();
+const HELPLESSNESS_CACHE_TTL = 5 * 60 * 1000;
+
+async function checkAndCacheHelplessness(scriptName: string): Promise<HelplessnessResult> {
+  const cached = helplessnessCache.get(scriptName);
+  if (cached && Date.now() - cached.cachedAt < HELPLESSNESS_CACHE_TTL) {
+    return cached.result;
+  }
+  const result = await checkHelplessness(scriptName);
+  helplessnessCache.set(scriptName, { result, cachedAt: Date.now() });
+  return result;
+}
+
+function invalidateHelplessnessCache(scriptName?: string) {
+  if (scriptName) {
+    helplessnessCache.delete(scriptName);
+  } else {
+    helplessnessCache.clear();
+  }
+}
 
 // --- Run history helpers ---
 
@@ -409,6 +438,16 @@ async function parseCrontab() {
       }
     }
 
+    // Helplessness detection for active agent scripts with prompts
+    let helplessness: HelplessnessResult | null = null;
+    if (hasPrompt && category === "agent" && status === "active") {
+      try {
+        helplessness = await checkAndCacheHelplessness(script);
+      } catch {
+        // Detection failure must not break scheduler
+      }
+    }
+
     const entry: SchedulerCrontabEntry = {
       lineIndex: i,
       schedule,
@@ -423,6 +462,12 @@ async function parseCrontab() {
       runHistory,
       costEstimate: buildCostEstimate(script, cronCosts, runsThisWeek),
       hasPrompt,
+      helplessness: helplessness?.detected ? {
+        detected: true,
+        agentName: helplessness.agentName,
+        patterns: helplessness.patterns,
+        recommendation: helplessness.recommendation,
+      } : null,
     };
 
     if (category === "agent" && reg) {
@@ -786,6 +831,82 @@ schedulerRoutes.post("/run-script", async (req, res) => {
   }
 });
 
+// --- GET /helplessness-check/:scriptName ---
+
+schedulerRoutes.get("/helplessness-check/:scriptName", async (req, res) => {
+  const { scriptName } = req.params;
+
+  if (!scriptName.endsWith(".sh") || scriptName.includes("/") || scriptName.includes("..")) {
+    res.status(400).json({ ok: false, error: "Invalid script name", timestamp: new Date().toISOString() });
+    return;
+  }
+
+  try {
+    const result = await checkAndCacheHelplessness(scriptName);
+    res.json({ ok: true, data: result, timestamp: new Date().toISOString() });
+  } catch (e: any) {
+    res.json({ ok: false, error: e.message, timestamp: new Date().toISOString() });
+  }
+});
+
+// --- POST /force-new-session/:scriptName ---
+
+schedulerRoutes.post("/force-new-session/:scriptName", async (req, res) => {
+  const { scriptName } = req.params;
+
+  if (!scriptName.endsWith(".sh") || scriptName.includes("/") || scriptName.includes("..")) {
+    res.status(400).json({ ok: false, error: "Invalid script name", timestamp: new Date().toISOString() });
+    return;
+  }
+
+  try {
+    const scriptPath = join(BIN_DIR, scriptName);
+    const { data: content } = await readTextFile(scriptPath);
+    if (!content) {
+      res.json({ ok: false, error: "Script not found", timestamp: new Date().toISOString() });
+      return;
+    }
+
+    const oldPattern = extractSessionIdPattern(content);
+    if (!oldPattern) {
+      res.json({ ok: false, error: "No --session-id found in script", timestamp: new Date().toISOString() });
+      return;
+    }
+
+    const newPattern = bumpSessionVersion(oldPattern);
+
+    // Snapshot before change
+    await ensureGitRepo(BIN_DIR);
+    await snapshot(BIN_DIR, `LobsterTank: pre-session-bump snapshot for ${scriptName}`);
+
+    // Replace session-id in script
+    const updated = content.replace(
+      new RegExp(`(--session-id\\s+["'])${oldPattern.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(["'])`, "g"),
+      `$1${newPattern}$2`,
+    );
+    await writeFile(scriptPath, updated);
+
+    const commitSnap = await snapshot(BIN_DIR, `LobsterTank: bump session ${oldPattern} -> ${newPattern} in ${scriptName}`);
+
+    // Invalidate helplessness cache for this script
+    invalidateHelplessnessCache(scriptName);
+
+    await logAction("FORCE_NEW_SESSION", `${scriptName}: ${oldPattern} -> ${newPattern}`);
+
+    res.json({
+      ok: true,
+      data: {
+        oldSessionPattern: oldPattern,
+        newSessionPattern: newPattern,
+        commitHash: commitSnap?.hash ?? null,
+      },
+      timestamp: new Date().toISOString(),
+    });
+  } catch (e: any) {
+    res.json({ ok: false, error: e.message, timestamp: new Date().toISOString() });
+  }
+});
+
 // --- GET /script/:scriptName/prompts --- (Phase 1, must precede generic /script/:scriptName)
 
 schedulerRoutes.get("/script/:scriptName/prompts", async (req, res) => {
@@ -920,6 +1041,7 @@ schedulerRoutes.post("/script/:scriptName/apply-rewrite", async (req, res) => {
       await markFeedbackApplied(scriptName, feedbackId, commitSnap?.hash ?? null, desc);
     }
 
+    invalidateHelplessnessCache(scriptName);
     await logAction("PROMPT_APPLY_REWRITE", `${scriptName}: heredoc ${heredocId}, commit ${commitSnap?.hash ?? "none"}`);
 
     res.json({

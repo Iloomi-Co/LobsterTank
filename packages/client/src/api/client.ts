@@ -145,6 +145,13 @@ export const api = {
     request<any>(`/scheduler/script/${encodeURIComponent(scriptName)}/revert-rewrite`, {
       method: "POST",
     }),
+  schedulerHelplessnessCheck: (scriptName: string) =>
+    request<any>(`/scheduler/helplessness-check/${encodeURIComponent(scriptName)}`),
+  schedulerForceNewSession: (scriptName: string) =>
+    request<{ oldSessionPattern: string; newSessionPattern: string; commitHash: string | null }>(
+      `/scheduler/force-new-session/${encodeURIComponent(scriptName)}`,
+      { method: "POST" },
+    ),
 
   // Step 5: Determinism Audit
   determinismScan: () => request<any>("/determinism/scan"),

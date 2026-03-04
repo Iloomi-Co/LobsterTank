@@ -2,6 +2,7 @@ import { useState } from "react";
 import { DataTable } from "../shared/DataTable.js";
 import { StatusDot } from "../shared/StatusDot.js";
 import { Badge } from "../shared/Badge.js";
+import { HelplessnessWarning } from "./HelplessnessWarning.js";
 import { cronToHuman } from "../../utils/cron.js";
 import styles from "./CrontabSection.module.css";
 
@@ -29,6 +30,20 @@ interface CrontabEntry {
     pauseFile: string;
     preCheck: string;
   };
+  helplessness?: {
+    detected: boolean;
+    agentName: string | null;
+    patterns: {
+      type: "repeated-failure" | "capability-mismatch" | "stale-session";
+      claimedLimitation: string;
+      actualCapability?: string;
+      toolsmdLastModified?: string;
+      firstFailure?: string;
+      lastFailure?: string;
+      occurrences: number;
+    }[];
+    recommendation: string | null;
+  } | null;
 }
 
 interface CrontabSectionProps {
@@ -38,6 +53,9 @@ interface CrontabSectionProps {
   onViewLogs: (scriptName: string) => void;
   onViewScript: (entry: CrontabEntry) => void;
   onRunScript: (scriptName: string) => Promise<void>;
+  onForceNewSession?: (scriptName: string) => Promise<void>;
+  dismissedHelplessness?: Set<string>;
+  onDismissHelplessness?: (scriptName: string) => void;
 }
 
 const STATUS_MAP: Record<string, "online" | "offline" | "warning"> = {
@@ -74,7 +92,7 @@ function RunSparkline({ history }: { history: { timestamp: string; status: strin
   );
 }
 
-export function CrontabSection({ entries, pathLine, onToggle, onViewLogs, onViewScript, onRunScript }: CrontabSectionProps) {
+export function CrontabSection({ entries, pathLine, onToggle, onViewLogs, onViewScript, onRunScript, onForceNewSession, dismissedHelplessness, onDismissHelplessness }: CrontabSectionProps) {
   const [runningScript, setRunningScript] = useState<string | null>(null);
   const agentEntries = entries.filter((e) => e.category === "agent");
   const systemEntries = entries.filter((e) => e.category === "system");
@@ -228,6 +246,19 @@ export function CrontabSection({ entries, pathLine, onToggle, onViewLogs, onView
         </div>
         <div className={styles.body}>
           <DataTable columns={baseColumns} data={agentEntries} rowKey={(e) => String(e.lineIndex)} onRowClick={onViewScript} compact />
+          {onForceNewSession && onDismissHelplessness && agentEntries
+            .filter((e) => e.helplessness?.detected && !dismissedHelplessness?.has(e.script))
+            .map((e) => (
+              <HelplessnessWarning
+                key={e.script}
+                scriptName={e.script}
+                agentName={e.helplessness!.agentName}
+                patterns={e.helplessness!.patterns}
+                recommendation={e.helplessness!.recommendation}
+                onForceNewSession={onForceNewSession}
+                onDismiss={onDismissHelplessness}
+              />
+            ))}
         </div>
       </div>
 

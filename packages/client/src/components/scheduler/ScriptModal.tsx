@@ -31,6 +31,14 @@ export function ScriptModal({ scriptName, schedule, description, command, lineIn
   const [tunerHeredocId, setTunerHeredocId] = useState<string | undefined>(undefined);
   const [tunerLastOutput, setTunerLastOutput] = useState<string | undefined>(undefined);
   const [lastFeedbackId, setLastFeedbackId] = useState<string | undefined>(undefined);
+  const [helplessness, setHelplessness] = useState<{
+    detected: boolean;
+    patterns: any[];
+    recommendation: string | null;
+    agentName: string | null;
+  } | null>(null);
+  const [helplessnessDismissed, setHelplessnessDismissed] = useState(false);
+  const [forcingSession, setForcingSession] = useState(false);
 
   const handleCopy = async () => {
     if (!content) return;
@@ -80,6 +88,13 @@ export function ScriptModal({ scriptName, schedule, description, command, lineIn
     });
 
     loadFeedback();
+
+    // Check for learned helplessness
+    api.schedulerHelplessnessCheck(scriptName).then((res) => {
+      if (res.ok && res.data?.detected) {
+        setHelplessness(res.data);
+      }
+    });
   }, [scriptName, loadFeedback]);
 
   const handleFeedbackSubmitted = async () => {
@@ -110,6 +125,17 @@ export function ScriptModal({ scriptName, schedule, description, command, lineIn
     setTunerSuggestion(null);
     setTunerHeredocId(undefined);
     setTunerLastOutput(undefined);
+  };
+
+  const handleResetSessionAndRun = async () => {
+    setForcingSession(true);
+    try {
+      await api.schedulerForceNewSession(scriptName);
+      await api.schedulerRunScript(scriptName);
+      setHelplessnessDismissed(true);
+    } finally {
+      setForcingSession(false);
+    }
   };
 
   return (
@@ -146,6 +172,33 @@ export function ScriptModal({ scriptName, schedule, description, command, lineIn
             </div>
           )}
         </div>
+        {helplessness?.detected && !helplessnessDismissed && (
+          <div className={styles.helplessnessAlert}>
+            <div className={styles.helplessnessHeader}>
+              <span className={styles.helplessnessIcon}>&#9888;</span>
+              <strong>Learned Helplessness Detected</strong>
+            </div>
+            {helplessness.patterns.map((p: any, i: number) => (
+              <div key={i} className={styles.helplessnessDetail}>
+                <span className={styles.helplessnessLabel}>Claims:</span> &ldquo;{p.claimedLimitation}&rdquo;
+                {p.actualCapability && (
+                  <><br /><span className={styles.helplessnessLabel}>Actual:</span> {p.actualCapability}</>
+                )}
+              </div>
+            ))}
+            {helplessness.recommendation && (
+              <div className={styles.helplessnessRec}>{helplessness.recommendation}</div>
+            )}
+            <div className={styles.helplessnessActions}>
+              <button className={styles.forceSessionBtn} onClick={handleResetSessionAndRun} disabled={forcingSession}>
+                {forcingSession ? "Resetting..." : "Reset Session & Re-run"}
+              </button>
+              <button className={styles.editPromptBtn} onClick={() => setHelplessnessDismissed(true)}>
+                Edit Prompt Instead
+              </button>
+            </div>
+          </div>
+        )}
         <div className={styles.contentHeader}>
           <span className={styles.contentLabel}>Script</span>
           <div className={styles.contentActions}>
@@ -175,6 +228,7 @@ export function ScriptModal({ scriptName, schedule, description, command, lineIn
               lastOutputSnippet={lastOutputSnippet}
               onFeedbackSubmitted={handleFeedbackSubmitted}
               onRewriteRequested={handleRewriteRequested}
+              helplessnessDetected={helplessness?.detected}
             />
 
             {tunerSuggestion && (

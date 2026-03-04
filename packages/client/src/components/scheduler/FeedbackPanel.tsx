@@ -10,9 +10,10 @@ interface FeedbackPanelProps {
   lastOutputSnippet?: string | null;
   onFeedbackSubmitted: () => void;
   onRewriteRequested: (suggestion: string, heredocId?: string, lastOutput?: string) => void;
+  helplessnessDetected?: boolean;
 }
 
-export function FeedbackPanel({ scriptName, prompts, lastOutputSnippet, onFeedbackSubmitted, onRewriteRequested }: FeedbackPanelProps) {
+export function FeedbackPanel({ scriptName, prompts, lastOutputSnippet, onFeedbackSubmitted, onRewriteRequested, helplessnessDetected }: FeedbackPanelProps) {
   const [rating, setRating] = useState<"up" | "down" | null>(null);
   const [suggestion, setSuggestion] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -120,6 +121,13 @@ export function FeedbackPanel({ scriptName, prompts, lastOutputSnippet, onFeedba
               {status}
             </span>
           )}
+        </div>
+      )}
+
+      {helplessnessDetected && rating === "down" && status === "Feedback saved" && (
+        <div className={styles.helplessnessHint}>
+          Learned helplessness was detected for this script. The agent may be stuck on a resolved issue.
+          Consider using &ldquo;Force New Session&rdquo; from the scheduler view.
         </div>
       )}
     </div>

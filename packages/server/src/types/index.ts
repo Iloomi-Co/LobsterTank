@@ -157,6 +157,20 @@ export interface SchedulerCrontabEntry {
     pauseFile: string;
     preCheck: string;
   };
+  helplessness?: {
+    detected: boolean;
+    agentName: string | null;
+    patterns: {
+      type: "repeated-failure" | "capability-mismatch" | "stale-session";
+      claimedLimitation: string;
+      actualCapability?: string;
+      toolsmdLastModified?: string;
+      firstFailure?: string;
+      lastFailure?: string;
+      occurrences: number;
+    }[];
+    recommendation: string | null;
+  } | null;
 }
 
 export interface SchedulerOcCron {

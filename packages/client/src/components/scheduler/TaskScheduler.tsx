@@ -33,6 +33,12 @@ interface SchedulerState {
         pauseFile: string;
         preCheck: string;
       };
+      helplessness?: {
+        detected: boolean;
+        agentName: string | null;
+        patterns: any[];
+        recommendation: string | null;
+      } | null;
     }[];
     pathLine: string | null;
     raw: string;
@@ -75,6 +81,7 @@ export function TaskScheduler() {
   const [confirmRemoveOc, setConfirmRemoveOc] = useState<string | null>(null);
   const [confirmRemoveAllOc, setConfirmRemoveAllOc] = useState(false);
   const [confirmRemoveLaunchd, setConfirmRemoveLaunchd] = useState<string | null>(null);
+  const [dismissedHelplessness, setDismissedHelplessness] = useState<Set<string>>(new Set());
 
   const handleToggleCron = async (lineIndex: number, enabled: boolean) => {
     await api.schedulerToggleCron(lineIndex, enabled);
@@ -99,6 +106,15 @@ export function TaskScheduler() {
   const handleRunScript = async (scriptName: string) => {
     await api.schedulerRunScript(scriptName);
     refresh();
+  };
+
+  const handleForceNewSession = async (scriptName: string) => {
+    await api.schedulerForceNewSession(scriptName);
+    refresh();
+  };
+
+  const handleDismissHelplessness = (scriptName: string) => {
+    setDismissedHelplessness((prev) => new Set(prev).add(scriptName));
   };
 
   if (loading && !data) {
@@ -234,6 +250,9 @@ export function TaskScheduler() {
           lineIndex: entry.lineIndex,
         })}
         onRunScript={handleRunScript}
+        onForceNewSession={handleForceNewSession}
+        dismissedHelplessness={dismissedHelplessness}
+        onDismissHelplessness={handleDismissHelplessness}
       />
 
       <ConfirmDialog
