@@ -19,6 +19,21 @@ export function ScriptModal({ scriptName, schedule, description, command, lineIn
   const [scriptPath, setScriptPath] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [editorOpen, setEditorOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    if (!content) return;
+    try {
+      await navigator.clipboard.writeText(content);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch { /* no clipboard access */ }
+  };
+
+  const handleOpenInVSCode = () => {
+    if (!scriptPath) return;
+    window.open(`vscode://file${scriptPath}`, "_blank");
+  };
 
   useEffect(() => {
     api.schedulerScript(scriptName).then((res) => {
@@ -65,6 +80,19 @@ export function ScriptModal({ scriptName, schedule, description, command, lineIn
               <code className={styles.metaValue}>{scriptPath}</code>
             </div>
           )}
+        </div>
+        <div className={styles.contentHeader}>
+          <span className={styles.contentLabel}>Script</span>
+          <div className={styles.contentActions}>
+            {scriptPath && (
+              <button className={styles.actionBtn} onClick={handleOpenInVSCode}>
+                Open in VS Code
+              </button>
+            )}
+            <button className={styles.actionBtn} onClick={handleCopy} disabled={!content}>
+              {copied ? "Copied!" : "Copy"}
+            </button>
+          </div>
         </div>
         <div className={styles.content}>
           {loading ? (

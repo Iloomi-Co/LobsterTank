@@ -168,6 +168,8 @@ function scanScheduleLanguage(
       severity = "info";
     }
 
+    const firstMatch = timeMatches[0]?.[0] ?? "unknown";
+
     findings.push({
       id: "", // assigned later
       category: "schedule-without-crontab",
@@ -176,14 +178,14 @@ function scanScheduleLanguage(
       line: i + 1,
       excerpt: line.trim().slice(0, 200),
       context: hasCrontabMatch
-        ? "Time reference has matching crontab entry"
-        : "No matching crontab entry found",
+        ? `Schedule reference "${firstMatch}" has a matching crontab entry — no action needed`
+        : `Schedule reference "${firstMatch}" has no matching crontab entry — this task may not actually be running`,
       hasCrontabMatch,
       hasMechanismReference: hasMech,
       mechanismNote: hasMech ? "Mechanism referenced in surrounding paragraph" : undefined,
       suggestedAction: hasCrontabMatch
-        ? "Informational — crontab entry exists"
-        : "Verify a crontab entry exists or rewrite as pure reference",
+        ? "No action needed — crontab handles this schedule"
+        : "Run 'crontab -l' to verify this schedule is implemented. If it is, add a mechanism reference (e.g., \"triggered by crontab\") to suppress this finding. If it isn't, either create a wrapper + crontab entry or rewrite as documentation.",
     });
   }
 
@@ -197,6 +199,7 @@ function scanActionImperatives(
 ): Finding[] {
   const findings: Finding[] = [];
   const displayPath = file.path.replace(homedir(), "~");
+  const isHeartbeatMd = basename(file.path) === "HEARTBEAT.md";
 
   for (let i = 0; i < file.lines.length; i++) {
     const line = file.lines[i];
@@ -210,9 +213,12 @@ function scanActionImperatives(
     if (!hasSchedule) continue;
 
     const hasMech = MECHANISM_WORDS.test(paragraph);
+    const matchedVerb = line.match(ACTION_VERBS)?.[1] ?? "unknown";
 
     let severity: Severity;
-    if (!hasMech) {
+    if (hasMech && isHeartbeatMd) {
+      severity = "info";
+    } else if (!hasMech) {
       severity = "high";
     } else if (/vague|should|could/i.test(paragraph)) {
       severity = "medium";
@@ -228,12 +234,12 @@ function scanActionImperatives(
       line: i + 1,
       excerpt: line.trim().slice(0, 200),
       context: hasMech
-        ? "Action imperative with mechanism reference"
-        : "Action imperative with schedule language but no mechanism reference",
+        ? `Action verb "${matchedVerb}" found with schedule language nearby, but a mechanism (crontab/wrapper/script) is also referenced — likely safe`
+        : `Action verb "${matchedVerb}" combined with schedule language but no mention of crontab, wrapper, or script — the LLM may interpret this as an instruction to self-schedule`,
       hasMechanismReference: hasMech,
       suggestedAction: hasMech
-        ? "Consider making mechanism reference more explicit"
-        : "Rewrite as reference or create wrapper + cron entry",
+        ? "Add an explicit trigger reference (e.g., 'triggered by crontab' or 'handled by wrapper script') so the LLM knows this is externally scheduled"
+        : "Either (1) create a wrapper script + crontab entry to handle this action deterministically, or (2) rewrite as documentation: 'The wrapper script runs [action] on [schedule]' instead of an imperative",
     });
   }
 
@@ -309,6 +315,12 @@ async function scanMissingSafeguards(
     const criticalRules = ["scheduling-rules", "heartbeat-rules"];
     const hasCritical = missingRules.some((r) => criticalRules.includes(r));
 
+    const riskDescription = missingRules.includes("scheduling-rules")
+      ? "creating rogue launchd/cron entries"
+      : missingRules.includes("heartbeat-rules")
+        ? "self-scheduling based on clock reads"
+        : "infrastructure drift";
+
     findings.push({
       id: "",
       category: "missing-safeguard",
@@ -316,9 +328,9 @@ async function scanMissingSafeguards(
       file: agentsPath.replace(homedir(), "~"),
       line: null,
       excerpt: `Missing rule blocks: ${missingRules.join(", ")}`,
-      context: `${ws.name} workspace AGENTS.md is missing ${missingRules.length} required rule block(s)`,
+      context: `${ws.name} (${agentType}) is missing ${missingRules.length} rule block(s) from AGENTS.md: ${missingRules.join(", ")}. Without these, the agent lacks guardrails against ${riskDescription}.`,
       missingRules,
-      suggestedAction: "Run Config Sync from the Audit & Deploy panel to add missing rules",
+      suggestedAction: `Run Config Sync to add the ${agentType}-appropriate templates for: ${missingRules.join(", ")}. The sync will use short-form rules for ${agentType} agents.`,
     });
   }
 
@@ -366,6 +378,11 @@ function scanLlmSpawningCrons(crontabLines: string[]): Finding[] {
       severity = "info";
     }
 
+    const freqMinutes = schedule.startsWith("*/") ? schedule.split("/")[1] : null;
+    const highFreqDetail = isPollCheck
+      ? "Polling tasks should use a bash pre-check (e.g., himalaya list | wc -l) before spawning the LLM."
+      : "Verify a pre-check gate exists in the wrapper script.";
+
     findings.push({
       id: "",
       category: "llm-spawning-cron",
@@ -374,15 +391,15 @@ function scanLlmSpawningCrons(crontabLines: string[]): Finding[] {
       line: null,
       excerpt: line.trim().slice(0, 200),
       context: isHighFreq
-        ? `High-frequency (${schedule}) LLM spawn`
-        : `LLM spawn on schedule: ${schedule}`,
+        ? `Cron entry spawns an LLM agent every ${freqMinutes} minutes — at ~$0.08/run this costs ~${estimatedCost}. ${highFreqDetail}`
+        : `Cron entry spawns an LLM agent on schedule (${schedule}) — normal frequency, cost is acceptable if a pre-check gate exists in the wrapper`,
       crontabEntry: line.trim(),
       estimatedIdleCost: estimatedCost,
       suggestedAction: severity === "high"
-        ? "Add lightweight pre-check before LLM spawn"
+        ? "Add a bash pre-check to the wrapper script that only spawns the LLM when there's actual work (e.g., check inbox count, check for new PRs, check file modification time)"
         : severity === "medium"
-          ? "Consider adding pre-check gate"
-          : "Appropriately scheduled LLM task",
+          ? "Verify the wrapper script has a pre-check gate. If missing, add one to avoid spawning the LLM on empty cycles."
+          : "Schedule and frequency are appropriate — no action needed",
     });
   }
 
@@ -503,12 +520,16 @@ function scanConditionalLogic(
     const isScriptable = /mail|inbox|unread|count|threshold|spend|empty|fail/i.test(line);
 
     // Fix 3: Lines describing wrapper/script behavior are reference descriptions
-    const isScriptReference = /himalaya|wrapper|script exits|script exit|watchdog|crontab triggers/i.test(line);
+    const isScriptReference = /himalaya|wrapper|script exits|script exit|watchdog|crontab triggers|→|->|follow the .+\.(md|json)/i.test(line);
+
+    // Fix 5: Security/behavioral constraints that require LLM judgment
+    const isSecurityConstraint = /ONLY if .+ explicitly (instructs|asks|authorizes)|already been delivered|do not (re-send|re-deliver|redeliver|fan out)/i.test(line);
 
     let severity: Severity;
-    if (isSoulMd || isScriptReference) {
+    if (isSoulMd || isScriptReference || isSecurityConstraint) {
       // Fix 2: SOUL.md conditional-logic → info (behavioral constraints requiring LLM judgment)
       // Fix 3: Script reference descriptions → info
+      // Fix 5: Security constraints → info
       severity = "info";
     } else if (hasAction && isScriptable) {
       severity = "high";
@@ -518,15 +539,20 @@ function scanConditionalLogic(
       severity = "info";
     }
 
+    const matchedPattern = CONDITIONAL_PATTERNS.find((p) => p.test(line));
+    const matchedText = matchedPattern ? (line.match(matchedPattern)?.[0] ?? "") : "";
+
     const context = isSoulMd
       ? "Behavioral constraint in SOUL.md — requires LLM judgment at runtime"
       : isScriptReference
         ? "Reference description of script behavior — not an action instruction"
-        : isScriptable
-          ? "Conditional logic that could be a bash if-statement"
-          : isBehavioral
-            ? "Behavioral guidance that legitimately requires LLM judgment"
-            : "Conditional logic in document";
+        : isSecurityConstraint
+          ? "Security constraint — requires LLM judgment to enforce per-user authorization rules"
+          : isScriptable
+            ? `Conditional logic ("${matchedText}") combined with actionable verb — this decision could be made deterministically in a bash script instead of by the LLM`
+            : isBehavioral
+              ? "Behavioral guidance involving tone, emotion, or user interaction — inherently requires LLM judgment and cannot be scripted"
+              : `Conditional pattern detected but no clear action verb — likely contextual guidance rather than a determinism risk`;
 
     findings.push({
       id: "",
@@ -537,9 +563,9 @@ function scanConditionalLogic(
       excerpt: line.trim().slice(0, 200),
       context,
       suggestedAction: severity === "high"
-        ? "Move this logic into a wrapper script"
+        ? "Move the if/when condition into a wrapper script pre-check (bash, jq, grep) so the LLM is only spawned when the condition is true, instead of deciding for itself"
         : severity === "medium"
-          ? "Consider whether this decision should be scripted"
+          ? "Review whether a bash pre-check or wrapper script could evaluate this condition before the LLM runs. If the condition involves data the LLM needs to interpret (tone, meaning, classification), it's fine as-is."
           : "Acceptable — requires LLM judgment",
     });
   }
