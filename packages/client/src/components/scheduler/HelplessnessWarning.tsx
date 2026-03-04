@@ -35,11 +35,16 @@ export function HelplessnessWarning({
   onDismiss,
 }: HelplessnessWarningProps) {
   const [forcing, setForcing] = useState(false);
+  const [status, setStatus] = useState<string | null>(null);
 
   const handleForce = async () => {
     setForcing(true);
+    setStatus("Bumping session & clearing memory...");
     try {
       await onForceNewSession(scriptName);
+      setStatus("Done — session bumped, memory cleaned, script re-run.");
+    } catch {
+      setStatus("Error during reset.");
     } finally {
       setForcing(false);
     }
@@ -73,8 +78,12 @@ export function HelplessnessWarning({
         ))}
       </div>
 
-      {recommendation && (
+      {recommendation && !status && (
         <div className={styles.recommendation}>{recommendation}</div>
+      )}
+
+      {status && (
+        <div className={styles.status}>{status}</div>
       )}
 
       <div className={styles.actions}>

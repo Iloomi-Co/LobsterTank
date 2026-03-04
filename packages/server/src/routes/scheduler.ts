@@ -30,7 +30,9 @@ import {
 import {
   checkHelplessness,
   extractSessionIdPattern,
+  extractAgentName,
   bumpSessionVersion,
+  cleanAgentMemory,
   type HelplessnessResult,
 } from "../lib/helplessness-detector.js";
 
@@ -931,11 +933,11 @@ schedulerRoutes.post("/force-new-session/:scriptName", async (req, res) => {
 
     const newPattern = bumpSessionVersion(oldPattern);
 
-    // Snapshot before change
+    // Step 1: Snapshot before changes
     await ensureGitRepo(BIN_DIR);
     await snapshot(BIN_DIR, `LobsterTank: pre-session-bump snapshot for ${scriptName}`);
 
-    // Replace session-id in script
+    // Step 2: Bump session-id in script
     const updated = content.replace(
       new RegExp(`(--session-id\\s+["'])${oldPattern.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(["'])`, "g"),
       `$1${newPattern}$2`,
@@ -944,10 +946,35 @@ schedulerRoutes.post("/force-new-session/:scriptName", async (req, res) => {
 
     const commitSnap = await snapshot(BIN_DIR, `LobsterTank: bump session ${oldPattern} -> ${newPattern} in ${scriptName}`);
 
+    // Step 3: Clean agent memory of stale limitation beliefs
+    const agentName = extractAgentName(content);
+    let memoryCleaned: { cleaned: boolean; removedPhrases: string[] } = { cleaned: false, removedPhrases: [] };
+    if (agentName) {
+      // Get the current helplessness patterns to know what to clean
+      const cached = helplessnessCache.get(scriptName);
+      const limitations = cached?.result.patterns.map((p) => p.claimedLimitation) ?? [];
+      if (limitations.length > 0) {
+        memoryCleaned = await cleanAgentMemory(agentName, limitations);
+      }
+    }
+
+    // Step 4: Run the script to verify the fix
+    let runResult: { exitCode: number; output: string } | null = null;
+    try {
+      const execResult = await safeExec("bash", [scriptPath], { timeout: 120_000 });
+      const output = (execResult.stdout + "\n" + execResult.stderr).trim();
+      runResult = {
+        exitCode: execResult.exitCode,
+        output: output.length > 4000 ? output.slice(-4000) : output,
+      };
+    } catch {
+      // Run failure is non-fatal — session was already bumped
+    }
+
     // Invalidate helplessness cache for this script
     invalidateHelplessnessCache(scriptName);
 
-    await logAction("FORCE_NEW_SESSION", `${scriptName}: ${oldPattern} -> ${newPattern}`);
+    await logAction("FORCE_NEW_SESSION", `${scriptName}: ${oldPattern} -> ${newPattern}, memory cleaned=${memoryCleaned.cleaned}, run exit=${runResult?.exitCode ?? "skipped"}`);
 
     res.json({
       ok: true,
@@ -955,6 +982,9 @@ schedulerRoutes.post("/force-new-session/:scriptName", async (req, res) => {
         oldSessionPattern: oldPattern,
         newSessionPattern: newPattern,
         commitHash: commitSnap?.hash ?? null,
+        memoryCleaned: memoryCleaned.cleaned,
+        removedPhrases: memoryCleaned.removedPhrases,
+        runResult,
       },
       timestamp: new Date().toISOString(),
     });

@@ -110,6 +110,7 @@ export function TaskScheduler() {
 
   const handleForceNewSession = async (scriptName: string) => {
     await api.schedulerForceNewSession(scriptName);
+    setDismissedHelplessness((prev) => new Set(prev).add(scriptName));
     refresh();
   };
 

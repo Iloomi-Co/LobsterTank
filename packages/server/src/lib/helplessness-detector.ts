@@ -1,4 +1,5 @@
 import { join } from "path";
+import { writeFile } from "fs/promises";
 import { readTextFile, fileStat } from "./file-reader.js";
 import { getScriptLogMap, OC_HOME, BIN_DIR, OC_LOGS_DIR } from "../config.js";
 
@@ -52,22 +53,90 @@ export function bumpSessionVersion(sessionPattern: string): string {
   return `${sessionPattern}-v2`;
 }
 
+// Timestamp parsing for splitting runs (mirrors scheduler.ts splitLogIntoRuns)
+const ISO_TS_RE = /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2})\s/;
+const BRACKET_TS_RE = /^\[(\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2})\]/;
+
+function parseLogTimestamp(line: string): number | null {
+  const iso = line.match(ISO_TS_RE);
+  if (iso) return new Date(iso[1]).getTime();
+  const bracket = line.match(BRACKET_TS_RE);
+  if (bracket) return new Date(bracket[1]).getTime();
+  return null;
+}
+
+/** Split log into runs by >90s gaps between timestamped lines. */
+function splitIntoRuns(content: string): string[] {
+  const lines = content.split("\n");
+  const runs: string[][] = [];
+  let current: string[] = [];
+  let lastEpoch: number | null = null;
+
+  for (const line of lines) {
+    const epoch = parseLogTimestamp(line);
+    if (epoch !== null) {
+      if (current.length > 0 && lastEpoch !== null && epoch - lastEpoch > 90_000) {
+        runs.push(current);
+        current = [];
+      }
+      lastEpoch = epoch;
+    }
+    current.push(line);
+  }
+  if (current.length > 0) runs.push(current);
+
+  return runs.map((r) => r.join("\n"));
+}
+
+/** Check if a run block contains only "no-op" output (e.g., NO_MAIL: 0 unseen). */
+const NOOP_RUN_RE = /^[\s\S]*NO_MAIL: 0 unseen[\s\S]*$/;
+
 async function getTodayLogContent(scriptName: string): Promise<string | null> {
   const logMap = await getScriptLogMap();
   const mapping = logMap[scriptName];
   if (!mapping) return null;
 
+  let fullContent: string | null = null;
   if (typeof mapping === "function") {
     const fileName = mapping(new Date());
     const logPath = join(OC_LOGS_DIR, fileName);
     const { data } = await readTextFile(logPath);
-    return data;
+    fullContent = data;
+  } else {
+    const logPath = join(OC_LOGS_DIR, mapping);
+    const { data } = await readTextFile(logPath);
+    fullContent = data;
   }
 
-  // Static log file
-  const logPath = join(OC_LOGS_DIR, mapping);
-  const { data } = await readTextFile(logPath);
-  return data;
+  if (!fullContent) return null;
+
+  // Split into individual runs and find the last non-trivial run.
+  // If it has no failure phrases, there's no helplessness to detect.
+  const runs = splitIntoRuns(fullContent);
+  if (runs.length === 0) return null;
+
+  // Walk backwards to find the last run that actually did something (not a no-op skip)
+  let lastSubstantiveIndex = -1;
+  for (let i = runs.length - 1; i >= 0; i--) {
+    if (!NOOP_RUN_RE.test(runs[i])) {
+      lastSubstantiveIndex = i;
+      break;
+    }
+  }
+
+  if (lastSubstantiveIndex < 0) return null; // All runs are no-ops, no helplessness
+
+  // Check if the last substantive run actually succeeded.
+  // A run that mentions a limitation but then resolves it (e.g., finds a workaround)
+  // should not trigger helplessness detection.
+  const lastRun = runs[lastSubstantiveIndex];
+  const SUCCESS_IN_RUN_RE = /\bsent successfully\b|Response sent|✅.*Action Taken|completed successfully|exit code 0\b|Email sent/i;
+  if (SUCCESS_IN_RUN_RE.test(lastRun)) {
+    return null; // Last substantive run succeeded — no helplessness
+  }
+
+  // Only scan the last substantive run and any runs after it.
+  return runs.slice(lastSubstantiveIndex).join("\n\n");
 }
 
 function findFailurePhrases(content: string): { phrase: string; line: string }[] {
@@ -223,4 +292,60 @@ export async function checkHelplessness(scriptName: string): Promise<Helplessnes
   }
 
   return result;
+}
+
+/**
+ * Scan agent's MEMORY.md for lines matching the claimed limitations and
+ * remove or annotate them so the agent doesn't carry stale beliefs.
+ * Returns the phrases that were cleaned.
+ */
+export async function cleanAgentMemory(
+  agentName: string,
+  claimedLimitations: string[],
+): Promise<{ cleaned: boolean; removedPhrases: string[] }> {
+  const memoryPath = join(OC_HOME, `workspace-${agentName}`, "MEMORY.md");
+  const { data: content } = await readTextFile(memoryPath);
+  if (!content) return { cleaned: false, removedPhrases: [] };
+
+  // Build keywords from the claimed limitations
+  const keywords: string[] = [];
+  for (const claim of claimedLimitations) {
+    // Extract meaningful words (4+ chars) from each limitation
+    const words = claim.toLowerCase().match(/\b[a-z]{4,}\b/g) ?? [];
+    keywords.push(...words);
+  }
+  const uniqueKeywords = [...new Set(keywords)].filter(
+    (w) => !["that", "this", "with", "from", "have", "been", "does", "will", "were", "they"].includes(w),
+  );
+  if (uniqueKeywords.length === 0) return { cleaned: false, removedPhrases: [] };
+
+  // Find lines that reference the limitation (e.g., "cannot send", "TTY", "doesn't work")
+  const lines = content.split("\n");
+  const removedPhrases: string[] = [];
+  const cleaned: string[] = [];
+  let skipBlock = false;
+
+  for (const line of lines) {
+    const lower = line.toLowerCase();
+    // Check if this line contains limitation-related language
+    const matchCount = uniqueKeywords.filter((kw) => lower.includes(kw)).length;
+    const isLimitationLine = matchCount >= 2 && (
+      /\b(cannot|unable|limitation|doesn't work|can't|won't|not supported|not possible|failed|broken)\b/i.test(line) ||
+      /~~.*~~/.test(line) // strikethrough text indicating old broken state
+    );
+
+    if (isLimitationLine) {
+      removedPhrases.push(line.trim());
+      // Skip this line — it encodes a stale belief
+      continue;
+    }
+
+    cleaned.push(line);
+  }
+
+  if (removedPhrases.length === 0) return { cleaned: false, removedPhrases: [] };
+
+  // Write cleaned memory back
+  await writeFile(memoryPath, cleaned.join("\n"));
+  return { cleaned: true, removedPhrases };
 }

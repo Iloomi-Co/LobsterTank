@@ -105,6 +105,12 @@
   margin-top: 10px;
 }
 
+.status {
+  margin-top: 8px;
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+}
+
 .forceSessionBtn {
   padding: 6px 14px;
   background: var(--yellow);
