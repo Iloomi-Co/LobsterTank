@@ -136,7 +136,7 @@ for ti in $(seq 0 $((TARGET_COUNT - 1))); do
                     ALL_KEYWORDS_FOUND=false
                     MISSING_KEYWORDS+=("$KW")
                 fi
-            done < <(jq -r ".ruleBlocks[] | select(.id == \"$RULE_ID\") | .validation.mustContain[]" "$RULES_FILE" 2>/dev/null || true)
+            done < <(jq -r ".ruleBlocks[] | select(.id == \"$RULE_ID\") | .validation | if .mustContainByType[\"$AGENT_TYPE\"] then .mustContainByType[\"$AGENT_TYPE\"][] else .mustContain[] end" "$RULES_FILE" 2>/dev/null || true)
 
             if $ALL_KEYWORDS_FOUND; then
                 WORKSPACE_OK+=("$RULE_ID")

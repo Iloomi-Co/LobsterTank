@@ -8,50 +8,81 @@ import { logAction } from "../lib/action-logger.js";
 import { ensureGitRepo, snapshot } from "../lib/git.js";
 import {
   OC_HOME, BIN_DIR, DEPLOY_SCRIPTS, DEPLOY_CONFIG,
-  DEPLOYED_CONFIG_DIR, OC_LOGS_DIR, getExpectedCronEntries,
+  DEPLOYED_CONFIG_DIR, OC_LOGS_DIR,
 } from "../config.js";
 
 export const scriptRoutes = Router();
 
 scriptRoutes.get("/status", async (_req, res) => {
   try {
-    const { entries: sourceScripts } = await listDir(DEPLOY_SCRIPTS);
+    // Primary: discover from ~/bin/
+    const { entries: binEntries } = await listDir(BIN_DIR);
+    const binScripts = new Set(binEntries.filter((f) => f.endsWith(".sh")));
+
+    // Secondary: discover from deploy/
+    const { entries: deployEntries } = await listDir(DEPLOY_SCRIPTS);
+    const deployScripts = new Set(deployEntries.filter((f) => f.endsWith(".sh")));
+
+    // Cross-reference crontab directly
     const cronResult = await safeExec("crontab", ["-l"]);
     const currentCrontab = cronResult.exitCode === 0 ? cronResult.stdout : "";
 
-    const scripts = [];
-    for (const file of sourceScripts) {
-      if (!file.endsWith(".sh")) continue;
+    // Union of all script names
+    const allScripts = new Set([...binScripts, ...deployScripts]);
 
-      const deployedPath = join(BIN_DIR, file);
-      const deployedStat = await fileStat(deployedPath);
-      const deployed = deployedStat !== null;
+    const scripts = [];
+    for (const file of allScripts) {
+      const inBin = binScripts.has(file);
+      const inDeploy = deployScripts.has(file);
 
       let executable = false;
-      let upToDate = false;
+      let deployStatus: "ok" | "update" | "new" | "not-in-deploy" = "new";
 
-      if (deployed) {
-        executable = (deployedStat!.mode & 0o111) !== 0;
-        const srcHash = await safeExec("shasum", [join(DEPLOY_SCRIPTS, file)]);
-        const dstHash = await safeExec("shasum", [deployedPath]);
-        if (srcHash.exitCode === 0 && dstHash.exitCode === 0) {
-          upToDate = srcHash.stdout.split(/\s/)[0] === dstHash.stdout.split(/\s/)[0];
+      if (inBin) {
+        const deployedPath = join(BIN_DIR, file);
+        const deployedStat = await fileStat(deployedPath);
+        if (deployedStat) {
+          executable = (deployedStat.mode & 0o111) !== 0;
+        }
+
+        if (inDeploy) {
+          const srcHash = await safeExec("shasum", [join(DEPLOY_SCRIPTS, file)]);
+          const dstHash = await safeExec("shasum", [join(BIN_DIR, file)]);
+          if (srcHash.exitCode === 0 && dstHash.exitCode === 0) {
+            deployStatus = srcHash.stdout.split(/\s/)[0] === dstHash.stdout.split(/\s/)[0] ? "ok" : "update";
+          } else {
+            deployStatus = "update";
+          }
+        } else {
+          deployStatus = "not-in-deploy";
         }
       }
 
-      const allExpectedEntries = await getExpectedCronEntries();
-      const expectedCrons = allExpectedEntries.filter((e) => e.script === file);
-      const cronInstalled = expectedCrons.length > 0
-        ? expectedCrons.every((e) => currentCrontab.includes(e.match))
-        : true;
+      // Find schedule from crontab
+      let hasCrontabEntry = false;
+      let schedule: string | null = null;
+      for (const line of currentCrontab.split("\n")) {
+        if (!line.includes(file)) continue;
+        const trimmed = line.trim();
+        if (trimmed.startsWith("#") || trimmed.startsWith("PATH=") || trimmed.startsWith("SHELL=")) continue;
+        hasCrontabEntry = true;
+        if (trimmed.startsWith("@reboot")) {
+          schedule = "@reboot";
+        } else {
+          const parts = trimmed.split(/\s+/);
+          if (parts.length >= 6) schedule = parts.slice(0, 5).join(" ");
+        }
+        break;
+      }
 
       scripts.push({
         name: file,
-        deployed,
+        inBin,
+        inDeploy,
+        deployStatus,
         executable,
-        upToDate,
-        cronInstalled,
-        cronEntry: expectedCrons.length > 0 ? expectedCrons.map((e) => `${e.schedule} ${e.command}`).join("\n") : null,
+        hasCrontabEntry,
+        schedule,
       });
     }
 

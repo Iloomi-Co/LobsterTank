@@ -27,37 +27,12 @@ export const OC_LOGS_DIR = join(OC_HOME, "logs");
 export const REGISTRY_FILE = join(homedir(), ".openclaw-registry.json");
 
 export const CLIENT_DIST = join(SERVER_SRC_DIR, "../../client/dist");
-export const REGISTERED_AUTOMATIONS_FILE = join(OC_HOME, "registered-automations.json");
+const REGISTERED_AUTOMATIONS_FILE = join(OC_HOME, "registered-automations.json");
 
 const SCRIPT_METADATA_FILE = join(DASHBOARD_STATE_DIR, "script-metadata.json");
 
-// --- Expected cron entries (from registered-automations.json only) ---
-
-export interface CronEntryDef {
-  script: string;
-  match: string;
-  schedule: string;
-  command: string;
-}
-
-export async function getExpectedCronEntries(): Promise<CronEntryDef[]> {
-  try {
-    const raw = await readFile(REGISTERED_AUTOMATIONS_FILE, "utf-8");
-    const reg = JSON.parse(raw);
-    if (reg.automations && Array.isArray(reg.automations)) {
-      return reg.automations.map((a: any) => ({
-        script: a.script,
-        match: a.match,
-        schedule: a.schedule,
-        command: a.command,
-      }));
-    }
-  } catch {
-    // File doesn't exist — no expected entries
-  }
-  return [];
-}
-
+// Legacy: still used by scheduler for logPattern lookup.
+// Not used by the audit system (which now discovers patterns directly).
 export async function getRegisteredAutomations(): Promise<any[]> {
   try {
     const raw = await readFile(REGISTERED_AUTOMATIONS_FILE, "utf-8");

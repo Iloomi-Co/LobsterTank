@@ -5,12 +5,37 @@ import { ConfirmDialog } from "../shared/ConfirmDialog.js";
 import { api } from "../../api/client.js";
 import styles from "./AuditPanel.module.css";
 
+interface DiscoveredTask {
+  report: {
+    scriptName: string;
+    classification: "agent-wrapper" | "infrastructure" | "utility";
+    checks: { id: string; label: string; passed: boolean; detail: string | null; agentOnly?: boolean; exempt?: boolean }[];
+    passCount: number;
+    totalApplicable: number;
+    agentName: string | null;
+    schedule: string | null;
+    hasCrontabEntry: boolean;
+  };
+  inBin: boolean;
+  inDeploy: boolean;
+  deployStatus: "ok" | "update" | "new" | "not-in-deploy";
+}
+
+interface CrontabHealth {
+  raw: string;
+  hasPath: boolean;
+  pathLine: string | null;
+  orphanedEntries: { schedule: string; command: string }[];
+  fixes: string[];
+}
+
 interface AuditData {
   changePlanText: string;
   totalChanges: number;
   configSync: any;
-  scriptDeployment: any;
-  crontab: any;
+  discoveredTasks: DiscoveredTask[];
+  crontab: CrontabHealth;
+  deployOnlyScripts: string[];
   issues: any[];
   gitStatus: any;
   applied?: string[];
@@ -25,7 +50,7 @@ export function AuditPanel() {
   const [applyCategories, setApplyCategories] = useState({
     configSync: true,
     scriptDeployment: true,
-    crontab: true,
+    crontabFixes: true,
   });
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
   const [applying, setApplying] = useState(false);
@@ -81,6 +106,16 @@ export function AuditPanel() {
 
   const selectedCount = Object.values(applyCategories).filter(Boolean).length;
 
+  const classificationBadge = (cls: string) => {
+    switch (cls) {
+      case "agent-wrapper": return <Badge label="agent" variant="blue" />;
+      case "infrastructure": return <Badge label="infra" variant="yellow" />;
+      default: return <Badge label="utility" variant="default" />;
+    }
+  };
+
+  const scriptsNeedingDeploy = data?.discoveredTasks?.filter((t) => t.deployStatus === "update" || t.deployStatus === "new").length ?? 0;
+
   return (
     <Panel title="Audit & Deploy" icon="[>]" loading={loading || applying} error={error} span={2}>
       {!data ? (
@@ -106,7 +141,7 @@ export function AuditPanel() {
           {/* Change Plan */}
           <div className={styles.planSection}>
             <div className={styles.planHeader}>
-              <h4 className={styles.planTitle}>Change Plan</h4>
+              <h4 className={styles.planTitle}>Audit Report</h4>
               <div className={styles.planActions}>
                 <button className={styles.copyBtn} onClick={handleCopy}>
                   {copied ? "Copied!" : "Copy to Clipboard"}
@@ -141,19 +176,19 @@ export function AuditPanel() {
                   />
                   <span>Script Deployment</span>
                   <Badge
-                    label={`${data.scriptDeployment?.scripts?.filter((s: any) => s.status !== "ok").length ?? 0} to deploy`}
+                    label={`${scriptsNeedingDeploy} to deploy`}
                     variant="blue"
                   />
                 </label>
                 <label className={styles.checkbox}>
                   <input
                     type="checkbox"
-                    checked={applyCategories.crontab}
-                    onChange={() => toggleCategory("crontab")}
+                    checked={applyCategories.crontabFixes}
+                    onChange={() => toggleCategory("crontabFixes")}
                   />
-                  <span>Crontab</span>
+                  <span>Crontab Fixes</span>
                   <Badge
-                    label={`${data.crontab?.toAdd?.length ?? 0} to add`}
+                    label={`${data.crontab?.fixes?.length ?? 0} fixes`}
                     variant="blue"
                   />
                 </label>
@@ -169,7 +204,7 @@ export function AuditPanel() {
                 onClick={() => setConfirmOpen(true)}
                 disabled={applying || selectedCount === 0}
               >
-                {applying ? "Applying..." : `Confirm & Apply (${selectedCount})`}
+                {applying ? "Applying..." : `Confirm & Apply (${data?.totalChanges ?? 0})`}
               </button>
             )}
             <button className={styles.rerunBtn} onClick={runAudit} disabled={loading}>
@@ -208,62 +243,98 @@ export function AuditPanel() {
             )}
           </div>
 
-          {/* Expandable detail: Scripts */}
+          {/* Expandable detail: Discovered Tasks */}
           <div className={styles.detailSection}>
-            <button className={styles.detailToggle} onClick={() => toggleSection("scripts")}>
-              {expandedSections.scripts ? "▼" : "▶"} Script Deployment Details
+            <button className={styles.detailToggle} onClick={() => toggleSection("tasks")}>
+              {expandedSections.tasks ? "▼" : "▶"} Discovered Tasks ({data.discoveredTasks?.length ?? 0})
             </button>
-            {expandedSections.scripts && data.scriptDeployment?.scripts && (
+            {expandedSections.tasks && data.discoveredTasks && (
               <div className={styles.detailContent}>
-                <table className={styles.statusTable}>
-                  <thead>
-                    <tr>
-                      <th>Script</th>
-                      <th>Deployed</th>
-                      <th>Current</th>
-                      <th>Cron</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.scriptDeployment.scripts.map((s: any) => (
-                      <tr key={s.name}>
-                        <td className={styles.scriptName}>{s.name}</td>
-                        <td>{s.deployed ? "✅" : "❌"}</td>
-                        <td>{s.deployed ? (s.upToDate ? "✅" : "⚠️") : "—"}</td>
-                        <td>{s.cronEntry ? (s.cronInstalled ? "✅" : "❌") : "n/a"}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                {data.discoveredTasks.map((task) => {
+                  const r = task.report;
+                  const allPassed = r.passCount === r.totalApplicable;
+                  const applicable = r.checks.filter((c) => !c.agentOnly || r.classification === "agent-wrapper");
+                  return (
+                    <div key={r.scriptName} className={styles.wsRow}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.25rem" }}>
+                        <span>{allPassed ? "✅" : "⚠️"}</span>
+                        <span className={styles.scriptName}>{r.scriptName}</span>
+                        {classificationBadge(r.classification)}
+                        {r.schedule && <Badge label={r.schedule} variant="default" />}
+                        {r.agentName && <Badge label={r.agentName} variant="blue" />}
+                      </div>
+                      <div className={styles.ruleChecks}>
+                        {applicable.map((c) => (
+                          <Badge key={c.id} label={c.label} variant={c.exempt ? "default" : c.passed ? "green" : "red"} />
+                        ))}
+                        {task.deployStatus === "update" && <Badge label="needs deploy" variant="yellow" />}
+                        {task.deployStatus === "not-in-deploy" && <Badge label="local only" variant="default" />}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
 
-          {/* Expandable detail: Crontab */}
-          <div className={styles.detailSection}>
-            <button className={styles.detailToggle} onClick={() => toggleSection("crontab")}>
-              {expandedSections.crontab ? "▼" : "▶"} Crontab Details
-            </button>
-            {expandedSections.crontab && (
-              <div className={styles.detailContent}>
-                {!data.crontab?.hasPath && (
-                  <div className={styles.warning}>PATH line missing from crontab</div>
-                )}
-                {data.crontab?.entries?.map((e: any, i: number) => (
-                  <div key={i} className={styles.cronEntry}>
-                    <span className={styles.cronSchedule}>{e.schedule}</span>
-                    <span className={styles.cronCommand}>{e.command}</span>
-                  </div>
-                ))}
-                {data.crontab?.toAdd?.map((entry: string, i: number) => (
-                  <div key={`add-${i}`} className={`${styles.cronEntry} ${styles.cronNew}`}>
-                    <span className={styles.cronLabel}>+ ADD</span>
-                    <span className={styles.cronCommand}>{entry}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          {/* Deploy Available */}
+          {data.deployOnlyScripts?.length > 0 && (
+            <div className={styles.detailSection}>
+              <button className={styles.detailToggle} onClick={() => toggleSection("deployAvail")}>
+                {expandedSections.deployAvail ? "▼" : "▶"} Deploy Available ({data.deployOnlyScripts.length})
+              </button>
+              {expandedSections.deployAvail && (
+                <div className={styles.detailContent}>
+                  {data.deployOnlyScripts.map((s) => (
+                    <div key={s} className={styles.cronEntry}>
+                      <span className={styles.cronCommand}>{s} (in deploy/, not in ~/bin/)</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Orphaned Crontab Entries */}
+          {data.crontab?.orphanedEntries?.length > 0 && (
+            <div className={styles.detailSection}>
+              <button className={styles.detailToggle} onClick={() => toggleSection("orphaned")}>
+                {expandedSections.orphaned ? "▼" : "▶"} Orphaned Crontab Entries ({data.crontab.orphanedEntries.length})
+              </button>
+              {expandedSections.orphaned && (
+                <div className={styles.detailContent}>
+                  {!data.crontab?.hasPath && (
+                    <div className={styles.warning}>PATH line missing from crontab</div>
+                  )}
+                  {data.crontab.orphanedEntries.map((e, i) => (
+                    <div key={i} className={`${styles.cronEntry} ${styles.cronNew}`}>
+                      <span className={styles.cronSchedule}>{e.schedule}</span>
+                      <span className={styles.cronCommand}>{e.command}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Crontab Fixes */}
+          {data.crontab?.fixes?.length > 0 && (
+            <div className={styles.detailSection}>
+              <button className={styles.detailToggle} onClick={() => toggleSection("crontabFixes")}>
+                {expandedSections.crontabFixes ? "▼" : "▶"} Crontab Fixes ({data.crontab.fixes.length})
+              </button>
+              {expandedSections.crontabFixes && (
+                <div className={styles.detailContent}>
+                  {data.crontab.fixes.map((fix, i) => (
+                    <div key={i} className={styles.issueRow}>
+                      <Badge label="FIX" variant="yellow" />
+                      <span>{fix}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Expandable detail: Issues */}
           {data.issues?.length > 0 && (

@@ -4,7 +4,7 @@ import { writeFile, unlink, mkdir } from "fs/promises";
 import type { ApiResponse } from "../types/index.js";
 import { safeExec } from "../lib/exec.js";
 import { logAction } from "../lib/action-logger.js";
-import { OC_HOME, getExpectedCronEntries, getCrontabPathLine } from "../config.js";
+import { OC_HOME, getCrontabPathLine } from "../config.js";
 
 export const crontabRoutes = Router();
 
@@ -58,11 +58,10 @@ crontabRoutes.get("/", async (_req, res) => {
 });
 
 crontabRoutes.post("/install", async (req, res) => {
-  const { entries: newEntries } = req.body as { entries?: string[] };
+  const { entries: newEntries, fixesOnly } = req.body as { entries?: string[]; fixesOnly?: boolean };
 
   try {
-    const expectedEntries = await getExpectedCronEntries();
-    await logAction("CRONTAB_INSTALL", `Adding ${(newEntries ?? expectedEntries).length} entries`);
+    await logAction("CRONTAB_INSTALL", fixesOnly ? "Applying structural fixes only" : `Adding ${newEntries?.length ?? 0} entries`);
 
     const cronResult = await safeExec("crontab", ["-l"]);
     let currentCrontab = cronResult.exitCode === 0 ? cronResult.stdout.trimEnd() : "";
@@ -73,19 +72,13 @@ crontabRoutes.post("/install", async (req, res) => {
       currentCrontab = pathLine + "\n" + currentCrontab;
     }
 
-    // Add expected entries that are missing
-    if (newEntries) {
+    // Add explicit entries (if provided and not fixesOnly)
+    if (newEntries && !fixesOnly) {
       for (const entry of newEntries) {
         const scriptMatch = entry.match(/([a-zA-Z0-9_-]+\.sh)/);
         const scriptName = scriptMatch?.[1] ?? entry;
         if (!currentCrontab.includes(scriptName)) {
           currentCrontab += `\n${entry}`;
-        }
-      }
-    } else {
-      for (const expected of expectedEntries) {
-        if (!currentCrontab.includes(expected.match)) {
-          currentCrontab += `\n${expected.schedule} ${expected.command}`;
         }
       }
     }

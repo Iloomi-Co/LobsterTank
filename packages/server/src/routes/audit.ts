@@ -4,16 +4,35 @@ import { join } from "path";
 import { readFile, copyFile, mkdir, chmod } from "fs/promises";
 import type { ApiResponse } from "../types/index.js";
 import { safeExec } from "../lib/exec.js";
-import { readJsonFile, fileStat, listDir } from "../lib/file-reader.js";
+import { readJsonFile, readTextFile, fileStat, listDir } from "../lib/file-reader.js";
 import { logAction } from "../lib/action-logger.js";
 import {
   OC_HOME, OC_GATEWAY_PORT, DEPLOY_SCRIPTS, DEPLOY_CONFIG,
   BIN_DIR, DEPLOYED_CONFIG_DIR, OC_LOGS_DIR,
-  REGISTRY_FILE, getCrontabPathLine, getExpectedCronEntries,
+  REGISTRY_FILE, getCrontabPathLine,
 } from "../config.js";
 import { ensureGitRepo, isGitRepo, isClean, snapshot, getLastCommit } from "../lib/git.js";
+import { checkWrapperConvention } from "../lib/wrapper-convention-checker.js";
+import type { WrapperConventionReport } from "../lib/wrapper-convention-checker.js";
 
 export const auditRoutes = Router();
+
+// ─── Types ──────────────────────────────────────────────────
+
+interface DiscoveredTask {
+  report: WrapperConventionReport;
+  inBin: boolean;
+  inDeploy: boolean;
+  deployStatus: "ok" | "update" | "new" | "not-in-deploy";
+}
+
+interface CrontabHealth {
+  raw: string;
+  hasPath: boolean;
+  pathLine: string | null;
+  orphanedEntries: { schedule: string; command: string }[];
+  fixes: string[];
+}
 
 // ─── Sub-check: Config sync ────────────────────────────────
 async function checkConfigSync(): Promise<any> {
@@ -24,7 +43,6 @@ async function checkConfigSync(): Promise<any> {
   }
 
   const result = await safeExec("bash", [syncScript, "--check", "--json"], { timeout: 15000 });
-  // Exit code 0 = all aligned, 1 = drift detected (both produce valid JSON)
   if (result.exitCode !== 0 && result.exitCode !== 1) {
     return { summary: { totalChecks: 0, ok: 0, missing: 0, outdated: 0 }, aligned: false, results: [], error: result.stderr || "Script failed" };
   }
@@ -36,136 +54,96 @@ async function checkConfigSync(): Promise<any> {
   }
 }
 
-// ─── Sub-check: Script deployment ───────────────────────────
-interface ScriptStatus {
-  name: string;
-  deployed: boolean;
-  executable: boolean;
-  upToDate: boolean;
-  cronInstalled: boolean;
-  cronEntry: string | null;
-  status: "ok" | "new" | "update";
-}
+// ─── Discovery: replaces checkScripts + checkCrontab ────────
 
-async function checkScripts(): Promise<{ scripts: ScriptStatus[]; configFiles: any[] }> {
-  const { entries: sourceScripts } = await listDir(DEPLOY_SCRIPTS);
-  const scripts: ScriptStatus[] = [];
-  const allExpectedEntries = await getExpectedCronEntries();
+async function discoverTasks(): Promise<{
+  tasks: DiscoveredTask[];
+  crontab: CrontabHealth;
+  deployOnlyScripts: string[];
+}> {
+  // 1. List ~/bin/*.sh
+  const { entries: binEntries } = await listDir(BIN_DIR);
+  const binScripts = binEntries.filter((f) => f.endsWith(".sh"));
 
-  // Get current crontab
+  // 2. Read crontab
   const cronResult = await safeExec("crontab", ["-l"]);
-  const currentCrontab = cronResult.exitCode === 0 ? cronResult.stdout : "";
+  const crontabRaw = cronResult.exitCode === 0 ? cronResult.stdout : "";
 
-  for (const file of sourceScripts) {
-    if (!file.endsWith(".sh")) continue;
+  // 3. List deploy/scripts/core/*.sh
+  const { entries: deployEntries } = await listDir(DEPLOY_SCRIPTS);
+  const deployScripts = deployEntries.filter((f) => f.endsWith(".sh"));
 
-    const sourcePath = join(DEPLOY_SCRIPTS, file);
-    const deployedPath = join(BIN_DIR, file);
+  // 4. For each script in ~/bin/ — read content, check convention, compare hash
+  const tasks: DiscoveredTask[] = [];
+  for (const scriptName of binScripts) {
+    const binPath = join(BIN_DIR, scriptName);
+    const { data: content } = await readTextFile(binPath);
+    if (!content) continue;
 
-    const deployedStat = await fileStat(deployedPath);
-    const deployed = deployedStat !== null;
+    const report = checkWrapperConvention(scriptName, content, crontabRaw);
 
-    let executable = false;
-    let upToDate = false;
+    const inDeploy = deployScripts.includes(scriptName);
+    let deployStatus: DiscoveredTask["deployStatus"] = "not-in-deploy";
 
-    if (deployed) {
-      // Check executable
-      try {
-        const mode = deployedStat!.mode;
-        executable = (mode & 0o111) !== 0;
-      } catch { /* */ }
-
-      // Compare checksums
-      const srcHash = await safeExec("shasum", [sourcePath]);
-      const dstHash = await safeExec("shasum", [deployedPath]);
+    if (inDeploy) {
+      const srcHash = await safeExec("shasum", [join(DEPLOY_SCRIPTS, scriptName)]);
+      const dstHash = await safeExec("shasum", [binPath]);
       if (srcHash.exitCode === 0 && dstHash.exitCode === 0) {
-        upToDate = srcHash.stdout.split(/\s/)[0] === dstHash.stdout.split(/\s/)[0];
+        const match = srcHash.stdout.split(/\s/)[0] === dstHash.stdout.split(/\s/)[0];
+        deployStatus = match ? "ok" : "update";
+      } else {
+        deployStatus = "update";
       }
     }
 
-    // Check cron entries (a script may have multiple cron entries)
-    const expectedCrons = allExpectedEntries.filter((e) => e.script === file);
-    const cronInstalled = expectedCrons.length > 0
-      ? expectedCrons.every((e) => currentCrontab.includes(e.match))
-      : true;
-
-    let status: "ok" | "new" | "update" = "new";
-    if (deployed && upToDate && executable) status = "ok";
-    else if (deployed) status = "update";
-
-    scripts.push({
-      name: file,
-      deployed,
-      executable,
-      upToDate,
-      cronInstalled,
-      cronEntry: expectedCrons.length > 0 ? expectedCrons.map((e) => `${e.schedule} ${e.command}`).join("\n") : null,
-      status,
+    tasks.push({
+      report,
+      inBin: true,
+      inDeploy,
+      deployStatus,
     });
   }
 
-  // Check config files
-  const { entries: sourceConfigs } = await listDir(DEPLOY_CONFIG);
-  const configFiles = [];
-  for (const file of sourceConfigs) {
-    if (file.endsWith(".template")) continue;
-    const deployedPath = join(DEPLOYED_CONFIG_DIR, file);
-    const exists = (await fileStat(deployedPath)) !== null;
-    configFiles.push({ name: file, deployed: exists, status: exists ? "ok" : "new" });
-  }
+  // 5. Find orphaned crontab entries (reference scripts not in ~/bin/)
+  const orphanedEntries: CrontabHealth["orphanedEntries"] = [];
+  const crontabLines = crontabRaw.split("\n");
+  for (const line of crontabLines) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#") || trimmed.startsWith("PATH=") || trimmed.startsWith("SHELL=")) continue;
 
-  return { scripts, configFiles };
-}
+    const scriptMatch = trimmed.match(/([a-zA-Z0-9_-]+\.sh)/);
+    if (!scriptMatch) continue;
 
-// ─── Sub-check: Crontab ────────────────────────────────────
-interface CrontabAudit {
-  raw: string;
-  hasPath: boolean;
-  pathLine: string | null;
-  entries: { schedule: string; command: string; scriptName: string }[];
-  expected: { script: string; match: string; schedule: string; command: string }[];
-  toAdd: string[];
-  toFix: string[];
-}
-
-async function checkCrontab(): Promise<CrontabAudit> {
-  const allExpectedEntries = await getExpectedCronEntries();
-  const result = await safeExec("crontab", ["-l"]);
-  const raw = result.exitCode === 0 ? result.stdout : "";
-  const lines = raw.split("\n");
-
-  const pathLine = lines.find((l) => l.startsWith("PATH=")) ?? null;
-  const hasPath = pathLine !== null;
-
-  const entries = lines
-    .filter((l) => l.trim() && !l.startsWith("#") && !l.startsWith("PATH=") && !l.startsWith("SHELL="))
-    .map((l) => {
-      const parts = l.trim().split(/\s+/);
-      const isReboot = parts[0] === "@reboot";
+    const refScript = scriptMatch[1];
+    if (!binScripts.includes(refScript)) {
+      const isReboot = trimmed.startsWith("@reboot");
+      const parts = trimmed.split(/\s+/);
       const schedule = isReboot ? "@reboot" : parts.slice(0, 5).join(" ");
       const command = isReboot ? parts.slice(1).join(" ") : parts.slice(5).join(" ");
-      const scriptMatch = command.match(/([a-zA-Z0-9_-]+\.sh)/);
-      return { schedule, command, scriptName: scriptMatch?.[1] ?? "" };
-    });
-
-  const toAdd: string[] = [];
-  const toFix: string[] = [];
-
-  if (!hasPath) toFix.push("PATH line missing");
-
-  for (const expected of allExpectedEntries) {
-    const found = raw.includes(expected.match);
-    if (!found) {
-      toAdd.push(`${expected.schedule} ${expected.command}`);
+      orphanedEntries.push({ schedule, command });
     }
   }
 
-  // Check for --keepalive -1 (missing unit)
-  if (raw.includes("--keepalive -1") && !raw.includes("--keepalive -1s")) {
-    toFix.push("Ollama --keepalive uses -1 instead of -1s");
+  // 6. Find deploy-only scripts (in deploy/ but not in ~/bin/)
+  const deployOnlyScripts = deployScripts.filter((f) => !binScripts.includes(f));
+
+  // 7. Build CrontabHealth
+  const pathLine = crontabLines.find((l) => l.startsWith("PATH=")) ?? null;
+  const fixes: string[] = [];
+  if (!pathLine) fixes.push("PATH line missing");
+  if (crontabRaw.includes("--keepalive -1") && !crontabRaw.includes("--keepalive -1s")) {
+    fixes.push("Ollama --keepalive uses -1 instead of -1s");
   }
 
-  return { raw, hasPath, pathLine, entries, expected: allExpectedEntries, toAdd, toFix };
+  const crontab: CrontabHealth = {
+    raw: crontabRaw,
+    hasPath: pathLine !== null,
+    pathLine,
+    orphanedEntries,
+    fixes,
+  };
+
+  return { tasks, crontab, deployOnlyScripts };
 }
 
 // ─── Sub-check: Issues ─────────────────────────────────────
@@ -215,12 +193,13 @@ async function checkGitStatus(dir: string): Promise<{ initialized: boolean; clea
   return { initialized, clean, lastCommit };
 }
 
-// ─── Change plan text generator ────────────────────────────
-function generateChangePlan(
+// ─── Audit report text generator ───────────────────────────
+function generateAuditReport(
   target: string,
   configSync: any,
-  scriptDeploy: any,
-  crontab: CrontabAudit,
+  discoveredTasks: DiscoveredTask[],
+  crontab: CrontabHealth,
+  deployOnlyScripts: string[],
   issues: any[],
   gitStatus: any,
 ): { text: string; totalChanges: number } {
@@ -229,7 +208,7 @@ function generateChangePlan(
 
   const ts = new Date().toISOString();
   lines.push("═══════════════════════════════════════════════════");
-  lines.push("  LobsterTank Change Plan");
+  lines.push("  LobsterTank Audit Report");
   lines.push(`  Generated: ${ts}`);
   lines.push(`  Target: ${target}`);
   lines.push("═══════════════════════════════════════════════════");
@@ -256,47 +235,76 @@ function generateChangePlan(
     }
   }
 
-  // Script Deployment
+  // Discovered Tasks
   lines.push("");
-  lines.push("── SCRIPT DEPLOYMENT ──────────────────────────────");
+  lines.push("── DISCOVERED TASKS (~/bin/ + crontab) ─────────────");
   lines.push("");
-  if (scriptDeploy.scripts) {
-    lines.push("  Scripts to deploy to ~/bin/:");
-    for (const s of scriptDeploy.scripts) {
-      const tag = s.status === "ok" ? "OK" : s.status === "new" ? "NEW" : "UPDATE";
-      const detail = s.status === "ok" ? "(up to date)" : s.status === "new" ? "(not currently deployed)" : "(deployed copy differs from source)";
-      lines.push(`    ${tag.padEnd(8)} ${s.name.padEnd(32)} ${detail}`);
-      if (s.status !== "ok") totalChanges++;
-    }
-  }
-  if (scriptDeploy.configFiles?.length > 0) {
-    lines.push("");
-    lines.push("  Config files:");
-    for (const c of scriptDeploy.configFiles) {
-      const tag = c.status === "ok" ? "OK" : "NEW";
-      lines.push(`    ${tag.padEnd(8)} ${c.name}`);
-      if (c.status !== "ok") totalChanges++;
+  for (const task of discoveredTasks) {
+    const r = task.report;
+    const allPassed = r.passCount === r.totalApplicable;
+    const icon = allPassed ? "✅" : "⚠️";
+    lines.push(`${icon} ${r.scriptName}`);
+
+    const schedulePart = r.schedule ? `Schedule: ${r.schedule}` : "Schedule: (none)";
+    const agentPart = r.agentName ? `Agent: ${r.agentName}` : `Type: ${r.classification}`;
+    lines.push(`   ${schedulePart}  |  ${agentPart}`);
+
+    // Show check indicators for applicable checks
+    const applicable = r.checks.filter((c) => !c.agentOnly || r.classification === "agent-wrapper");
+    const indicators = applicable.map((c) => {
+      const indicator = c.exempt ? "n/a" : (c.passed ? "✅" : "❌");
+      return `${c.label}: ${indicator}`;
+    }).join("  ");
+    lines.push(`   ${indicators}`);
+
+    if (task.deployStatus === "update") {
+      lines.push(`   Deploy: ⚠️ deployed copy differs from source`);
+      totalChanges++;
+    } else if (task.deployStatus === "not-in-deploy") {
+      lines.push(`   Deploy: (not in deploy/)`);
     }
   }
 
-  // Crontab
+  // Deploy Available
   lines.push("");
-  lines.push("── CRONTAB CHANGES ────────────────────────────────");
+  lines.push("── DEPLOY AVAILABLE ───────────────────────────────");
   lines.push("");
-  lines.push(`  Current entries: ${crontab.entries.length}`);
-  lines.push(`  Expected entries: ${crontab.expected.length}`);
+  if (deployOnlyScripts.length === 0) {
+    lines.push("   (none)");
+  } else {
+    for (const s of deployOnlyScripts) {
+      lines.push(`   ${s} (in deploy/, not in ~/bin/)`);
+    }
+  }
+
+  // Orphaned Crontab Entries
   lines.push("");
-  for (const entry of crontab.toAdd) {
-    lines.push(`  ADD     ${entry}`);
-    totalChanges++;
+  lines.push("── ORPHANED CRONTAB ENTRIES ───────────────────────");
+  lines.push("");
+  if (crontab.orphanedEntries.length === 0) {
+    lines.push("   (none)");
+  } else {
+    for (const e of crontab.orphanedEntries) {
+      lines.push(`   ${e.schedule} ${e.command}`);
+      totalChanges++;
+    }
   }
-  for (const entry of crontab.entries) {
-    lines.push(`  OK      ${entry.schedule} ${entry.command.slice(0, 60)}`);
+
+  // Crontab Fixes
+  if (crontab.fixes.length > 0) {
+    lines.push("");
+    lines.push("── CRONTAB FIXES ──────────────────────────────────");
+    lines.push("");
+    for (const fix of crontab.fixes) {
+      lines.push(`  FIX     ${fix}`);
+      totalChanges++;
+    }
   }
-  for (const fix of crontab.toFix) {
-    lines.push(`  FIX     ${fix}`);
-    totalChanges++;
-  }
+
+  // Agent Config Sync
+  lines.push("");
+  lines.push("── AGENT CONFIG SYNC ──────────────────────────────");
+  lines.push("   (unchanged — still calls sync-rules.sh --check --json)");
 
   // Issues
   if (issues.length > 0) {
@@ -314,7 +322,7 @@ function generateChangePlan(
 
   lines.push("");
   lines.push("═══════════════════════════════════════════════════");
-  lines.push(`  Summary: ${totalChanges} change(s) planned`);
+  lines.push(`  Summary: ${totalChanges} change(s) detected`);
   lines.push("  Run \"Confirm\" to apply. Git snapshot will be created first.");
   lines.push("═══════════════════════════════════════════════════");
 
@@ -324,16 +332,15 @@ function generateChangePlan(
 // ─── GET /api/audit — Master audit endpoint ────────────────
 auditRoutes.get("/", async (_req, res) => {
   try {
-    const [configSync, scriptDeploy, crontab, issues, gitStatus] = await Promise.all([
+    const [configSync, discovered, issues, gitStatus] = await Promise.all([
       checkConfigSync(),
-      checkScripts(),
-      checkCrontab(),
+      discoverTasks(),
       checkIssues(),
       checkGitStatus(OC_HOME),
     ]);
 
-    const { text: changePlanText, totalChanges } = generateChangePlan(
-      "~/.openclaw", configSync, scriptDeploy, crontab, issues, gitStatus
+    const { text: changePlanText, totalChanges } = generateAuditReport(
+      "~/.openclaw", configSync, discovered.tasks, discovered.crontab, discovered.deployOnlyScripts, issues, gitStatus
     );
 
     const response: ApiResponse<any> = {
@@ -342,13 +349,14 @@ auditRoutes.get("/", async (_req, res) => {
         timestamp: new Date().toISOString(),
         target: "~/.openclaw",
         configSync,
-        scriptDeployment: scriptDeploy,
-        crontab,
+        discoveredTasks: discovered.tasks,
+        crontab: discovered.crontab,
+        deployOnlyScripts: discovered.deployOnlyScripts,
         issues,
         gitStatus,
         changePlanText,
         totalChanges,
-        categories: ["configSync", "scriptDeployment", "crontab"],
+        categories: ["configSync", "scriptDeployment", "crontabFixes"],
       },
       timestamp: new Date().toISOString(),
     };
@@ -378,8 +386,6 @@ auditRoutes.post("/apply", async (req, res) => {
     if (apply.configSync) {
       const syncScript = join(DEPLOY_SCRIPTS, "sync-rules.sh");
       const syncResult = await safeExec("bash", [syncScript, "--apply", "--json"], { timeout: 15000 });
-      // Exit 0 = all aligned after apply, exit 1 = some outdated rules remain (skipped by design).
-      // Both mean the apply itself ran successfully. Only exit >= 2 is a real failure.
       results.push(`Config sync: ${syncResult.exitCode <= 1 ? "applied" : "failed"}`);
     }
 
@@ -410,40 +416,41 @@ auditRoutes.post("/apply", async (req, res) => {
       results.push("Script deployment: completed");
     }
 
-    // Apply crontab changes
-    if (apply.crontab) {
+    // Apply crontab fixes (structural only — no ADD from manifest)
+    if (apply.crontabFixes || apply.crontab) {
       const cronResult = await safeExec("crontab", ["-l"]);
       let currentCrontab = cronResult.exitCode === 0 ? cronResult.stdout.trimEnd() : "";
+      let changed = false;
 
       // Ensure PATH line
       if (!currentCrontab.includes("PATH=")) {
         const pathLine = await getCrontabPathLine();
         currentCrontab = pathLine + "\n" + currentCrontab;
-      }
-
-      // Add missing entries
-      const allExpectedEntries = await getExpectedCronEntries();
-      for (const entry of allExpectedEntries) {
-        if (!currentCrontab.includes(entry.match)) {
-          currentCrontab += `\n${entry.schedule} ${entry.command}`;
-        }
+        changed = true;
       }
 
       // Fix --keepalive -1 → -1s
-      currentCrontab = currentCrontab.replace(/--keepalive -1(?!s)/g, "--keepalive -1s");
+      const fixed = currentCrontab.replace(/--keepalive -1(?!s)/g, "--keepalive -1s");
+      if (fixed !== currentCrontab) {
+        currentCrontab = fixed;
+        changed = true;
+      }
 
-      // Install new crontab via stdin
-      const { writeFile } = await import("fs/promises");
-      const tmpFile = join(OC_HOME, "dashboard", ".crontab-tmp");
-      await mkdir(join(OC_HOME, "dashboard"), { recursive: true });
-      await writeFile(tmpFile, currentCrontab + "\n");
-      const installResult = await safeExec("crontab", [tmpFile]);
-      const { unlink } = await import("fs/promises");
-      await unlink(tmpFile).catch(() => {});
-      results.push(`Crontab: ${installResult.exitCode === 0 ? "installed" : "failed"}`);
+      if (changed) {
+        const { writeFile } = await import("fs/promises");
+        const tmpFile = join(OC_HOME, "dashboard", ".crontab-tmp");
+        await mkdir(join(OC_HOME, "dashboard"), { recursive: true });
+        await writeFile(tmpFile, currentCrontab + "\n");
+        const installResult = await safeExec("crontab", [tmpFile]);
+        const { unlink } = await import("fs/promises");
+        await unlink(tmpFile).catch(() => {});
+        results.push(`Crontab fixes: ${installResult.exitCode === 0 ? "applied" : "failed"}`);
+      } else {
+        results.push("Crontab fixes: no changes needed");
+      }
     }
 
-    // Auto-restart gateway if config sync was applied (agents pick up new rules)
+    // Auto-restart gateway if config sync was applied
     let gatewayRestart: { oldPid: number | null; newPid: number | null } | null = null;
     if (apply.configSync) {
       const oldPidResult = await safeExec("lsof", ["-i", `:${OC_GATEWAY_PORT}`, "-t"]);
@@ -469,16 +476,15 @@ auditRoutes.post("/apply", async (req, res) => {
     await snapshot(OC_HOME, `LobsterTank: applied ${Object.entries(apply).filter(([,v]) => v).map(([k]) => k).join(", ")}`);
 
     // Re-run audit to get updated state
-    const [configSync, scriptDeploy, crontab, issues, gitStatus] = await Promise.all([
+    const [configSync, discovered, issues, gitStatus] = await Promise.all([
       checkConfigSync(),
-      checkScripts(),
-      checkCrontab(),
+      discoverTasks(),
       checkIssues(),
       checkGitStatus(OC_HOME),
     ]);
 
-    const { text: changePlanText, totalChanges } = generateChangePlan(
-      "~/.openclaw", configSync, scriptDeploy, crontab, issues, gitStatus
+    const { text: changePlanText, totalChanges } = generateAuditReport(
+      "~/.openclaw", configSync, discovered.tasks, discovered.crontab, discovered.deployOnlyScripts, issues, gitStatus
     );
 
     res.json({
@@ -489,13 +495,14 @@ auditRoutes.post("/apply", async (req, res) => {
         timestamp: new Date().toISOString(),
         target: "~/.openclaw",
         configSync,
-        scriptDeployment: scriptDeploy,
-        crontab,
+        discoveredTasks: discovered.tasks,
+        crontab: discovered.crontab,
+        deployOnlyScripts: discovered.deployOnlyScripts,
         issues,
         gitStatus,
         changePlanText,
         totalChanges,
-        categories: ["configSync", "scriptDeployment", "crontab"],
+        categories: ["configSync", "scriptDeployment", "crontabFixes"],
       },
       timestamp: new Date().toISOString(),
     });
@@ -504,5 +511,4 @@ auditRoutes.post("/apply", async (req, res) => {
   }
 });
 
-// Expose the sub-checks for direct use
-export { checkConfigSync, checkScripts, checkCrontab };
+export { checkConfigSync, discoverTasks };

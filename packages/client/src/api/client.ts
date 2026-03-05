@@ -63,8 +63,8 @@ export const api = {
 
   // Step 2: Crontab
   crontabStatus: () => request<any>("/crontab"),
-  crontabInstall: (entries?: string[]) =>
-    request<any>("/crontab/install", { method: "POST", body: JSON.stringify({ entries }) }),
+  crontabInstall: (entries?: string[], fixesOnly?: boolean) =>
+    request<any>("/crontab/install", { method: "POST", body: JSON.stringify({ entries, fixesOnly }) }),
 
   // Step 2: Registry
   registry: () => request<any>("/registry"),
