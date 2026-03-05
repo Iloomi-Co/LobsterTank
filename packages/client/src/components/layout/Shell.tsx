@@ -3,16 +3,14 @@ import styles from "./Shell.module.css";
 
 interface ShellProps {
   topBar: ReactNode;
-  sidebar: ReactNode;
   children: ReactNode;
 }
 
-export function Shell({ topBar, sidebar, children }: ShellProps) {
+export function Shell({ topBar, children }: ShellProps) {
   return (
     <div className={styles.shell}>
-      {topBar}
-      <div className={styles.body}>
-        <aside className={styles.sidebar}>{sidebar}</aside>
+      <div className={styles.page}>
+        {topBar}
         <main className={styles.grid}>{children}</main>
       </div>
     </div>

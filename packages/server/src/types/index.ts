@@ -41,6 +41,7 @@ export interface GatewayStatus {
   pid?: number;
   port: number;
   uptime?: string;
+  startedAt?: string;
 }
 
 export interface HealthStatus {

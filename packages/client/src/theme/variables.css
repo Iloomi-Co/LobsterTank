@@ -72,9 +72,9 @@
   --border-primary: #d4d4d8;
   --border-subtle: transparent;
 
-  --text-primary: #09090b;
-  --text-secondary: #4a4a52;
-  --text-muted: #94949e;
+  --text-primary: #000000;
+  --text-secondary: #000000;
+  --text-muted: #000000;
   --text-accent: #059669;
 
   --accent-primary-dim: rgba(5, 150, 105, 0.06);
@@ -89,6 +89,9 @@
   --blue-dim: rgba(8, 145, 178, 0.06);
   --orange: #c2410c;
   --purple: #7c3aed;
+
+  --bg-screen: #A4ABB6;
+  --bg-page: linear-gradient(to bottom right, #E3E5E6, #F9E9B0);
 
   --shadow-panel: 0 1px 3px rgba(0, 0, 0, 0.03);
   --shadow-elevated: 0 12px 40px rgba(0, 0, 0, 0.1);

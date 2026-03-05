@@ -149,19 +149,34 @@ spendByModelRoutes.get("/", async (_req, res) => {
       }
     }
 
-    // Add local models from ollama that may not have invocations
+    // Query ollama ps for currently loaded (running) models
+    const loadedNames = new Set<string>(); // full names from ollama ps
+    const loadedBases = new Set<string>(); // base names (without :tag)
     try {
-      const ollamaResult = await safeExec("ollama", ["list"], { timeout: 5000 });
-      if (ollamaResult.exitCode === 0 && ollamaResult.stdout) {
-        const lines = ollamaResult.stdout.trim().split("\n").slice(1);
+      const psResult = await safeExec("ollama", ["ps"], { timeout: 5000 });
+      if (psResult.exitCode === 0 && psResult.stdout) {
+        const lines = psResult.stdout.trim().split("\n").slice(1);
         for (const line of lines) {
           const name = line.split(/\s+/)[0];
-          if (name && !modelStats.has(name)) {
-            getOrCreate(name, "ollama");
+          if (name) {
+            loadedNames.add(name);
+            loadedBases.add(name.split(":")[0]);
           }
         }
       }
     } catch {}
+
+    function isLoadedLocally(model: string): boolean {
+      if (loadedNames.has(model)) return true;
+      if (loadedBases.has(model)) return true;
+      if (loadedBases.has(model.split(":")[0])) return true;
+      return false;
+    }
+
+    // isLocal only if the model is currently loaded in ollama
+    for (const entry of modelStats.values()) {
+      entry.isLocal = isLoadedLocally(entry.model);
+    }
 
     // ── Compute summaries ───────────────────────────────
     const models = [...modelStats.values()].sort((a, b) => b.estimatedCost - a.estimatedCost);

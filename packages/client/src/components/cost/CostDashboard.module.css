@@ -498,18 +498,34 @@
 
 .modelCardHeader {
   display: flex;
-  align-items: center;
-  gap: 12px;
+  align-items: flex-start;
+}
+
+.modelCardTitle {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
 }
 
 .modelName {
   font-size: var(--font-size-lg);
   font-weight: var(--font-weight-medium);
   color: var(--text-primary);
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  word-break: break-word;
+}
+
+.modelSource {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.modelHostIcon {
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
 }
 
 .modelStats {

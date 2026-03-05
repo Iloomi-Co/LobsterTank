@@ -35,7 +35,6 @@ export function TopBar({
     <header className={styles.topBar}>
       <div className={styles.left}>
         <span className={styles.logo}>LobsterTank</span>
-        <span className={styles.subtitle}>OpenClaw Control Plane</span>
       </div>
       <nav className={styles.nav}>
         <button
@@ -63,29 +62,27 @@ export function TopBar({
           Determinism Audit
         </button>
       </nav>
-      {activeView === "dashboard" && (
-        <div className={styles.center}>
-          <button
-            className={`${styles.tab} ${activeInstance === "all" ? styles.active : ""}`}
-            onClick={() => onInstanceChange("all")}
-          >
-            All
-          </button>
-          {instances.map((inst) => (
-            <button
-              key={inst.id}
-              className={`${styles.tab} ${activeInstance === inst.id ? styles.active : ""}`}
-              onClick={() => onInstanceChange(inst.id)}
-            >
-              {inst.name}
-            </button>
-          ))}
-        </div>
-      )}
       <div className={styles.right}>
         <span className={styles.timestamp}>{formatTime(lastRefresh)}</span>
         <button className={styles.themeBtn} onClick={onToggleTheme} title="Toggle theme (T)">
-          {theme === "dark" ? "Light" : "Dark"}
+          <span className={`${styles.themeIcon} ${theme === "light" ? styles.themeIconActive : ""}`}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="5" />
+              <line x1="12" y1="1" x2="12" y2="3" />
+              <line x1="12" y1="21" x2="12" y2="23" />
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+              <line x1="1" y1="12" x2="3" y2="12" />
+              <line x1="21" y1="12" x2="23" y2="12" />
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+            </svg>
+          </span>
+          <span className={`${styles.themeIcon} ${theme === "dark" ? styles.themeIconActive : ""}`}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+            </svg>
+          </span>
         </button>
         <button className={styles.refreshBtn} onClick={onRefresh} title="Refresh (R)">
           Refresh

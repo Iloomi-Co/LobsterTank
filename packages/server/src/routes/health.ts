@@ -9,7 +9,7 @@ export const healthRoutes = Router();
 healthRoutes.get("/", async (_req, res) => {
   try {
     // Check if gateway is running via lsof
-    const lsofResult = await safeExec("lsof", ["-i", `:${OC_GATEWAY_PORT}`, "-t"]);
+    const lsofResult = await safeExec("lsof", ["-i", `:${OC_GATEWAY_PORT}`, "-sTCP:LISTEN", "-t"]);
     const gatewayPid = lsofResult.stdout.trim()
       ? parseInt(lsofResult.stdout.trim().split("\n")[0], 10)
       : null;
@@ -18,11 +18,22 @@ healthRoutes.get("/", async (_req, res) => {
     const { data: ocConfig } = await readJsonFile<any>(OC_CONFIG);
     const agents = ocConfig?.agents?.list ?? [];
 
+    // Get gateway start time if running
+    let startedAt: string | undefined;
+    if (gatewayPid) {
+      const psResult = await safeExec("ps", ["-o", "lstart=", "-p", String(gatewayPid)]);
+      if (psResult.exitCode === 0 && psResult.stdout.trim()) {
+        const parsed = new Date(psResult.stdout.trim());
+        if (!isNaN(parsed.getTime())) startedAt = parsed.toISOString();
+      }
+    }
+
     const health: HealthStatus = {
       gateway: {
         running: gatewayPid !== null,
         pid: gatewayPid ?? undefined,
         port: OC_GATEWAY_PORT,
+        startedAt,
       },
       agents: agents.map((a: any) => ({
         id: a.id,

@@ -44,6 +44,7 @@ export const api = {
   updateConfig: (config: any) =>
     request<any>("/config", { method: "PUT", body: JSON.stringify(config) }),
   instances: () => request<any>("/instances"),
+  identity: () => request<{ name: string; title: string; avatar: string | null }>("/identity"),
 
   // Step 2: Audit
   audit: () => request<any>("/audit"),

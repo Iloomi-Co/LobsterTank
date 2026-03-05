@@ -20,6 +20,7 @@ import { schedulerRoutes } from "./scheduler.js";
 import { determinismRoutes } from "./determinism.js";
 import { gatewayRoutes } from "./gateway.js";
 import { spendByModelRoutes } from "./spend-by-model.js";
+import { identityRoutes } from "./identity.js";
 import type { ApiResponse } from "../types/index.js";
 
 export const routes = Router();
@@ -63,3 +64,4 @@ routes.use("/determinism", determinismRoutes);
 
 // Step 6 routes
 routes.use("/gateway", gatewayRoutes);
+routes.use("/identity", identityRoutes);

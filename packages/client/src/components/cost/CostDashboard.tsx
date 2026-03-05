@@ -1,7 +1,10 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useState } from "react";
 import { Badge } from "../shared/Badge.js";
 import { usePolling } from "../../hooks/usePolling.js";
 import { api } from "../../api/client.js";
+import { getModelColor, formatTokens as fmtTokens } from "../../utils/modelColors.js";
+import { WeeklyCostChart } from "../panels/WeeklyCostChart.js";
+import { TokensByModel } from "../panels/TokensByModel.js";
 import styles from "./CostDashboard.module.css";
 
 // ── Types ───────────────────────────────────────────────
@@ -60,16 +63,6 @@ interface ModelSpendResponse {
 
 const SHORT_DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-const MODEL_COLORS: Record<string, string> = {
-  "sonnet-4-5": "var(--blue)",
-  "sonnet-4-6": "var(--blue)",
-  "haiku-4-5": "var(--yellow)",
-  "haiku-4-6": "var(--yellow)",
-  "opus-4-5": "var(--purple)",
-  "opus-4-6": "var(--purple)",
-};
-const DEFAULT_MODEL_COLOR = "var(--text-accent)";
-const LOCAL_MODEL_COLOR = "var(--green)";
 
 const PROVIDER_VARIANTS: Record<string, "blue" | "green" | "purple" | "muted"> = {
   anthropic: "blue",
@@ -91,11 +84,7 @@ function formatCost(n: number): string {
   return `$${n.toFixed(4)}`;
 }
 
-function formatTokens(n: number): string {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(0)}K`;
-  return String(n);
-}
+const formatTokens = fmtTokens;
 
 function cacheHitRatio(day: DailySpend): number {
   const totalCache = day.cacheRead + day.cacheWrite;
@@ -115,10 +104,7 @@ function ratioLabel(ratio: number): string {
   return "cold";
 }
 
-function getModelColor(model: string, isLocal: boolean): string {
-  if (isLocal) return LOCAL_MODEL_COLOR;
-  return MODEL_COLORS[model] ?? DEFAULT_MODEL_COLOR;
-}
+
 
 // ── Component ───────────────────────────────────────────
 
@@ -137,52 +123,6 @@ export function CostDashboard() {
 
   const models = modelData?.models ?? [];
   const modelDaily = modelData?.daily ?? [];
-
-  // All unique model names across daily data for consistent stacking
-  const allModelNames = useMemo(() => {
-    const set = new Set<string>();
-    for (const m of models) set.add(m.model);
-    for (const d of modelDaily) {
-      for (const key of Object.keys(d.models)) set.add(key);
-    }
-    return [...set];
-  }, [models, modelDaily]);
-
-  // Max daily total for chart scaling
-  const maxDailyModelCost = useMemo(() => {
-    return Math.max(...modelDaily.map((d) => d.total), 0.001);
-  }, [modelDaily]);
-
-  // Token segments by model for donut
-  const modelTokenSegments = useMemo(() => {
-    if (models.length === 0) return [];
-    const total = models.reduce((s, m) => s + m.estimatedInputTokens + m.estimatedOutputTokens, 0);
-    if (total === 0) return [];
-    return models
-      .filter((m) => m.invocations > 0)
-      .map((m) => {
-        const tokens = m.estimatedInputTokens + m.estimatedOutputTokens;
-        return {
-          label: m.model,
-          value: tokens,
-          color: getModelColor(m.model, m.isLocal),
-          pct: (tokens / total) * 100,
-        };
-      });
-  }, [models]);
-
-  const donutGradient = useMemo(() => {
-    if (modelTokenSegments.length === 0) return "conic-gradient(var(--bg-tertiary) 0% 100%)";
-    let acc = 0;
-    const stops = modelTokenSegments.map((seg) => {
-      const start = acc;
-      acc += seg.pct;
-      return `${seg.color} ${start}% ${acc}%`;
-    });
-    return `conic-gradient(${stops.join(", ")})`;
-  }, [modelTokenSegments]);
-
-  const tokenTotal = models.reduce((s, m) => s + m.estimatedInputTokens + m.estimatedOutputTokens, 0);
 
   const selectedDayData = daily.find((d) => d.date === selectedDay) ?? null;
   const selectedDayModel = modelDaily.find((d) => d.date === selectedDay) ?? null;
@@ -256,12 +196,23 @@ export function CostDashboard() {
           {models.map((m) => (
             <div key={m.model} className={styles.modelCard}>
               <div className={styles.modelCardHeader}>
-                <span className={styles.modelName}>{m.model}</span>
-                <Badge
-                  label={m.provider}
-                  variant={PROVIDER_VARIANTS[m.provider] ?? "muted"}
-                />
-                {m.isLocal && <span className={styles.freeBadge}>FREE</span>}
+                <div className={styles.modelCardTitle}>
+                  <span className={styles.modelName}>{m.model}</span>
+                  <div className={styles.modelSource}>
+                    <span className={styles.modelHostIcon} title={m.isLocal ? "Local" : "Remote"}>
+                      {m.isLocal ? (
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                      ) : (
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>
+                      )}
+                    </span>
+                    <Badge
+                      label={m.provider}
+                      variant={PROVIDER_VARIANTS[m.provider] ?? "muted"}
+                    />
+                    {m.isLocal && <span className={styles.freeBadge}>FREE</span>}
+                  </div>
+                </div>
               </div>
               <div className={styles.modelStats}>
                 <div className={styles.modelStat}>
@@ -344,91 +295,15 @@ export function CostDashboard() {
         </div>
       )}
 
-      {/* Daily Spend Chart (stacked by model) */}
-      {modelDaily.length > 0 && (
-        <div className={styles.card}>
-          <div className={styles.cardHeader}>
-            <h3 className={styles.cardTitle}>Daily Spend by Model</h3>
-            <div className={styles.legend}>
-              {allModelNames.slice(0, 5).map((name) => {
-                const m = models.find((x) => x.model === name);
-                const color = getModelColor(name, m?.isLocal ?? false);
-                return (
-                  <span key={name} className={styles.legendItem}>
-                    <span className={styles.legendDotDirect} style={{ background: color, opacity: 1 }} />
-                    {name}
-                  </span>
-                );
-              })}
-            </div>
-          </div>
-          <div className={styles.mainChart}>
-            {modelDaily.map((day) => {
-              const pct = (day.total / maxDailyModelCost) * 100;
-              const isToday = day.date === new Date().toISOString().slice(0, 10);
-              return (
-                <div
-                  key={day.date}
-                  className={`${styles.barCol} ${selectedDay === day.date ? styles.barColActive : ""}`}
-                  onClick={() => setSelectedDay(selectedDay === day.date ? null : day.date)}
-                >
-                  <span className={styles.barCost}>{formatCost(day.total)}</span>
-                  <div className={styles.barTrack}>
-                    <div className={styles.barFillWrap} style={{ height: `${Math.max(pct, 2)}%` }}>
-                      {allModelNames.map((name) => {
-                        const cost = day.models[name] ?? 0;
-                        const segPct = day.total > 0 ? (cost / day.total) * 100 : 0;
-                        if (segPct === 0) return null;
-                        const m = models.find((x) => x.model === name);
-                        const color = getModelColor(name, m?.isLocal ?? false);
-                        return (
-                          <div
-                            key={name}
-                            className={styles.barSegment}
-                            style={{ height: `${segPct}%`, background: color, opacity: 0.85 }}
-                          />
-                        );
-                      })}
-                    </div>
-                  </div>
-                  <span className={`${styles.barLabel} ${isToday ? styles.barLabelToday : ""}`}>
-                    {formatDate(day.date)}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
+      {/* Daily Spend Chart (interactive) */}
+      <WeeklyCostChart />
 
       {/* Two-column: Token Donut + Cache Efficiency */}
       <div className={styles.twoCol}>
-        {/* Token Distribution by Model (Donut) */}
-        <div className={styles.card}>
-          <div className={styles.cardHeader}>
-            <h3 className={styles.cardTitle}>Tokens by Model</h3>
-          </div>
-          <div className={styles.donutContainer}>
-            <div className={styles.donut} style={{ background: donutGradient }}>
-              <div className={styles.donutHole}>
-                <span className={styles.donutTotal}>{formatTokens(tokenTotal)}</span>
-                <span className={styles.donutLabel}>tokens</span>
-              </div>
-            </div>
-            <div className={styles.donutLegend}>
-              {modelTokenSegments.map((seg) => (
-                <div key={seg.label} className={styles.donutLegendItem}>
-                  <span className={styles.donutLegendDot} style={{ background: seg.color }} />
-                  <span className={styles.donutLegendLabel}>{seg.label}</span>
-                  <span className={styles.donutLegendValue}>{formatTokens(seg.value)}</span>
-                  <span className={styles.donutLegendPct}>{seg.pct.toFixed(1)}%</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+        {/* Token Distribution by Model (interactive donut) */}
+        <TokensByModel />
 
-        {/* Cache Efficiency (real data) */}
+        {/* Cache Efficiency */}
         <div className={styles.card}>
           <div className={styles.cardHeader}>
             <h3 className={styles.cardTitle}>Cache Efficiency</h3>

@@ -1,12 +1,16 @@
 import { useState, useEffect, useCallback } from "react";
 import { Shell } from "./components/layout/Shell.js";
 import { TopBar, type ViewType } from "./components/layout/TopBar.js";
+import { WelcomeRow } from "./components/layout/WelcomeRow.js";
+import { StatsRow } from "./components/layout/StatsRow.js";
 import { useTheme } from "./hooks/useTheme.js";
 import { InstanceHealth } from "./components/panels/InstanceHealth.js";
 import { ProcessMonitor } from "./components/panels/ProcessMonitor.js";
 import { ActiveSessions } from "./components/panels/ActiveSessions.js";
-import { AgentConfig } from "./components/panels/AgentConfig.js";
-import { OllamaModels } from "./components/panels/OllamaModels.js";
+import { AgentCarousel } from "./components/panels/AgentCarousel.js";
+import { TokensByModel } from "./components/panels/TokensByModel.js";
+import { WeeklyCostChart } from "./components/panels/WeeklyCostChart.js";
+import { IdentityCard } from "./components/panels/IdentityCard.js";
 import { AuditPanel } from "./components/panels/AuditPanel.js";
 import { GitPanel } from "./components/panels/GitPanel.js";
 import { TaskScheduler } from "./components/scheduler/TaskScheduler.js";
@@ -55,67 +59,6 @@ export function App() {
     return () => window.removeEventListener("keydown", handler);
   }, [handleRefresh, toggleTheme]);
 
-  const sidebar = (
-    <div className={styles.sidebar}>
-      <div className={styles.navGroup}>
-        <button
-          className={`${styles.iconBtn} ${view === "dashboard" ? styles.iconBtnActive : ""}`}
-          onClick={() => setView("dashboard")}
-          title="Dashboard"
-        >
-          #
-        </button>
-        <button
-          className={`${styles.iconBtn} ${view === "cost" ? styles.iconBtnActive : ""}`}
-          onClick={() => setView("cost")}
-          title="Cost"
-        >
-          $
-        </button>
-        <button
-          className={`${styles.iconBtn} ${view === "scheduler" ? styles.iconBtnActive : ""}`}
-          onClick={() => setView("scheduler")}
-          title="Task Scheduler"
-        >
-          &gt;
-        </button>
-        <button
-          className={`${styles.iconBtn} ${view === "determinism" ? styles.iconBtnActive : ""}`}
-          onClick={() => setView("determinism")}
-          title="Determinism Audit"
-        >
-          ?
-        </button>
-      </div>
-
-      <div className={styles.sidebarSpacer} />
-
-      <div className={styles.navGroup}>
-        <button
-          className={styles.iconBtn}
-          onClick={handleRefresh}
-          title="Refresh (R)"
-        >
-          R
-        </button>
-        <button
-          className={`${styles.iconBtn} ${styles.dangerBtn}`}
-          onClick={() => setEmergencyConfirm(true)}
-          title="Emergency Stop"
-        >
-          !
-        </button>
-        <button
-          className={styles.iconBtn}
-          onClick={toggleTheme}
-          title="Toggle Theme (T)"
-        >
-          {theme === "dark" ? "L" : "D"}
-        </button>
-      </div>
-    </div>
-  );
-
   return (
     <>
       <Shell
@@ -132,17 +75,20 @@ export function App() {
             onViewChange={setView}
           />
         }
-        sidebar={sidebar}
       >
         {view === "dashboard" ? (
           <>
+            <WelcomeRow />
+            <StatsRow />
+            <IdentityCard />
+            <AgentCarousel key={`agents-${refreshKey}`} />
+            <TokensByModel key={`tokens-${refreshKey}`} />
+            <WeeklyCostChart key={`weekly-cost-${refreshKey}`} />
             <AuditPanel key={`audit-${refreshKey}`} />
             <InstanceHealth key={`health-${refreshKey}`} />
             <GitPanel key={`git-${refreshKey}`} />
             <ProcessMonitor key={`proc-${refreshKey}`} />
             <ActiveSessions key={`sessions-${refreshKey}`} />
-            <AgentConfig key={`agents-${refreshKey}`} />
-            <OllamaModels key={`ollama-${refreshKey}`} />
           </>
         ) : view === "cost" ? (
           <CostDashboard key={`cost-${refreshKey}`} />

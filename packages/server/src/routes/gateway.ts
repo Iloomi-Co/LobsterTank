@@ -6,7 +6,7 @@ import { OC_GATEWAY_PORT } from "../config.js";
 export const gatewayRoutes = Router();
 
 async function getGatewayPid(): Promise<number | null> {
-  const result = await safeExec("lsof", ["-i", `:${OC_GATEWAY_PORT}`, "-t"]);
+  const result = await safeExec("lsof", ["-i", `:${OC_GATEWAY_PORT}`, "-sTCP:LISTEN", "-t"]);
   if (result.exitCode !== 0 || !result.stdout.trim()) return null;
   return parseInt(result.stdout.trim().split("\n")[0], 10) || null;
 }

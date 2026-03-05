@@ -1,0 +1,11 @@
+.welcome {
+  grid-column: 1 / -1;
+  padding: 8px 0 0;
+}
+
+.heading {
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-light);
+  color: var(--text-primary);
+  letter-spacing: -0.03em;
+}
