@@ -1,121 +1,105 @@
-/* ===== NEW: Horizontal audit row ===== */
+/* ===== Section wrapper ===== */
 
-.auditRow {
+.section {
   grid-column: 1 / -1;
-  background: var(--bg-panel);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
-  display: flex;
-  overflow: hidden;
-  box-shadow: var(--shadow-panel);
-  min-height: 180px;
-  max-height: 220px;
-  position: relative;
-}
-
-/* Left sidebar */
-.sidebar {
-  width: 200px;
-  min-width: 200px;
-  padding: 20px;
+  margin-top: 80px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  border-right: 1px solid var(--border-subtle);
-  background: var(--bg-tertiary);
+  gap: 0;
 }
 
-.sidebarTitle {
-  font-size: var(--font-size-lg);
+/* Section header — sits outside the card on the page background */
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 36px;
+}
+
+.sectionHeaderLeft {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.sectionHeading {
+  font-size: calc(var(--font-size-3xl) * 0.85);
   font-weight: var(--font-weight-medium);
   color: var(--text-primary);
   letter-spacing: -0.02em;
-  margin-bottom: 2px;
+  line-height: 1;
 }
 
-.statusLine {
+.rulesBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  color: #fff;
+}
+
+.rulesBadgeGreen {
+  background: var(--green);
+}
+
+.rulesBadgeRed {
+  background: var(--red);
+}
+
+.rulesBadgeIcon {
+  font-size: 11px;
+  line-height: 1;
+}
+
+.buttonGroup {
   display: flex;
+  gap: 8px;
+}
+
+.headerBtn {
+  display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: var(--font-size-xs);
-  color: var(--text-secondary);
-}
-
-.dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.dotGreen { background: var(--green); }
-.dotYellow { background: var(--yellow); }
-.dotRed { background: var(--red); }
-.dotGray { background: var(--text-muted); }
-
-.sidebarActions {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-top: auto;
-}
-
-.rowRerunBtn {
-  padding: 6px 12px;
-  background: var(--bg-active);
-  border: 1px solid var(--border-primary);
-  border-radius: var(--radius-sm);
-  font-size: var(--font-size-xs);
-  color: var(--text-secondary);
+  padding: 6px 20px;
+  border-radius: 999px;
+  border: 1px solid var(--text-primary);
+  background: transparent;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-normal);
+  color: var(--text-primary);
   cursor: pointer;
   transition: all var(--transition-fast);
 }
 
-.rowRerunBtn:hover {
-  background: var(--bg-hover);
-  color: var(--text-primary);
+.headerBtn:hover {
+  background: rgba(0, 0, 0, 0.05);
 }
 
-.rowRerunBtn:disabled {
+.headerBtn:disabled {
   opacity: 0.5;
-  cursor: not-allowed;
+  cursor: default;
 }
 
-.rowApplyBtn {
-  padding: 6px 12px;
-  background: var(--green);
-  color: var(--bg-primary);
-  border-radius: var(--radius-sm);
-  font-size: var(--font-size-xs);
-  font-weight: 600;
-  cursor: pointer;
-  transition: opacity var(--transition-fast);
+/* ===== Horizontal audit row ===== */
+
+.auditRow {
+  display: flex;
+  overflow: hidden;
+  position: relative;
 }
 
-.rowApplyBtn:hover {
-  opacity: 0.9;
-}
-
-.rowApplyBtn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.timestamp {
-  font-size: 10px;
-  color: var(--text-muted);
-  margin-top: 2px;
-}
-
-/* Right area — horizontally scrolling cards */
+/* Horizontally scrolling card area */
 .cardArea {
   flex: 1;
   display: flex;
   align-items: stretch;
-  gap: 12px;
-  padding: 16px;
+  gap: 16px;
   overflow-x: auto;
   overflow-y: hidden;
+  padding-bottom: 4px;
 }
 
 .cardArea::-webkit-scrollbar {
@@ -131,73 +115,110 @@
   border-radius: 2px;
 }
 
-/* Task card */
-.taskCard {
-  min-width: 220px;
-  max-width: 220px;
-  padding: 14px 16px;
-  background: var(--bg-primary);
+/* Agent audit card */
+.agentCard {
+  min-width: 380px;
+  max-width: 380px;
+  padding: 28px 24px 24px;
+  background: linear-gradient(135deg, #303030, #111111);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   display: flex;
   flex-direction: column;
-  gap: 6px;
   flex-shrink: 0;
+  box-shadow: var(--shadow-panel);
 }
 
-.taskScriptName {
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-  color: var(--text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.cardMeta {
+.agentCardHeader {
   display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: var(--font-size-xs);
-}
-
-.schedule {
-  color: var(--text-secondary);
-  font-size: var(--font-size-xs);
-}
-
-.agentName {
-  color: var(--text-muted);
-  font-size: var(--font-size-xs);
-}
-
-.checkDots {
-  display: flex;
-  gap: 4px;
-  align-items: center;
-  flex-wrap: wrap;
-  margin-top: auto;
-}
-
-.checkDot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-  cursor: default;
-}
-
-.cardFooter {
-  display: flex;
+  align-items: flex-start;
   justify-content: space-between;
-  align-items: center;
+  margin-bottom: 20px;
 }
 
-.passCount {
+.agentCardName {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-medium);
+  color: #f0f0f0;
+  letter-spacing: -0.01em;
+}
+
+.agentCardType {
   font-size: var(--font-size-xs);
-  color: var(--text-muted);
-  font-weight: 500;
-  margin-left: auto;
+  color: #888;
+  margin-top: 3px;
+  text-transform: capitalize;
+}
+
+.agentCardScore {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-medium);
+  color: #f0f0f0;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+/* Rule list — vertical */
+.ruleList {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  flex: 1;
+}
+
+.ruleItem {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.ruleItem:last-child {
+  border-bottom: none;
+}
+
+.ruleIcon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: #e8e8e8;
+  color: #444;
+}
+
+.ruleLabel {
+  flex: 1;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: #e0e0e0;
+  min-width: 0;
+}
+
+.ruleLabelPassed {
+  text-decoration: line-through;
+  color: #666;
+}
+
+.ruleStatus {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.ruleStatusOk {
+  background: var(--green);
+}
+
+.ruleStatusFail {
+  background: #444;
 }
 
 /* Row loading / empty */
