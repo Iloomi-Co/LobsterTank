@@ -1,42 +1,250 @@
-.entryPoint {
+/* ===== NEW: Horizontal audit row ===== */
+
+.auditRow {
+  grid-column: 1 / -1;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  display: flex;
+  overflow: hidden;
+  box-shadow: var(--shadow-panel);
+  min-height: 180px;
+  max-height: 220px;
+  position: relative;
+}
+
+/* Left sidebar */
+.sidebar {
+  width: 200px;
+  min-width: 200px;
+  padding: 20px;
   display: flex;
   flex-direction: column;
+  gap: 8px;
+  border-right: 1px solid var(--border-subtle);
+  background: var(--bg-tertiary);
+}
+
+.sidebarTitle {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+  margin-bottom: 2px;
+}
+
+.statusLine {
+  display: flex;
   align-items: center;
-  gap: 22px;
-  padding: 44px 22px;
-}
-
-.description {
+  gap: 6px;
+  font-size: var(--font-size-xs);
   color: var(--text-secondary);
-  font-size: var(--font-size-sm);
-  text-align: center;
-  max-width: 480px;
-  line-height: 1.7;
 }
 
-.auditBtn {
-  padding: 14px 32px;
-  background: var(--blue);
-  color: var(--bg-primary);
-  border-radius: var(--radius-md);
-  font-size: var(--font-size-md);
-  font-weight: 600;
-  transition: opacity var(--transition-fast);
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 
-.auditBtn:hover {
-  opacity: 0.9;
+.dotGreen { background: var(--green); }
+.dotYellow { background: var(--yellow); }
+.dotRed { background: var(--red); }
+.dotGray { background: var(--text-muted); }
+
+.sidebarActions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: auto;
 }
 
-.auditBtn:disabled {
+.rowRerunBtn {
+  padding: 6px 12px;
+  background: var(--bg-active);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.rowRerunBtn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.rowRerunBtn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-.target {
+.rowApplyBtn {
+  padding: 6px 12px;
+  background: var(--green);
+  color: var(--bg-primary);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+}
+
+.rowApplyBtn:hover {
+  opacity: 0.9;
+}
+
+.rowApplyBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.timestamp {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* Right area — horizontally scrolling cards */
+.cardArea {
+  flex: 1;
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+  padding: 16px;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.cardArea::-webkit-scrollbar {
+  height: 4px;
+}
+
+.cardArea::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.cardArea::-webkit-scrollbar-thumb {
+  background: var(--border-primary);
+  border-radius: 2px;
+}
+
+/* Task card */
+.taskCard {
+  min-width: 220px;
+  max-width: 220px;
+  padding: 14px 16px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.taskScriptName {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cardMeta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--font-size-xs);
+}
+
+.schedule {
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+}
+
+.agentName {
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.checkDots {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: auto;
+}
+
+.checkDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  cursor: default;
+}
+
+.cardFooter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.passCount {
   font-size: var(--font-size-xs);
   color: var(--text-muted);
+  font-weight: 500;
+  margin-left: auto;
 }
+
+/* Row loading / empty */
+.rowLoading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+  gap: 10px;
+}
+
+.rowSpinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--border-primary);
+  border-top-color: var(--text-muted);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.rowError {
+  color: var(--red);
+  font-size: var(--font-size-sm);
+  padding: 12px 16px;
+  background: var(--red-dim);
+  border-radius: var(--radius-sm);
+  margin: 16px;
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.rowToast {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 6px 12px;
+  background: var(--green-dim);
+  color: var(--green);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  z-index: 1;
+}
+
+/* ===== EXISTING: Expandable detail panel ===== */
 
 .content {
   display: flex;
@@ -239,27 +447,6 @@
   flex-wrap: wrap;
 }
 
-/* Script detail table */
-.statusTable {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: var(--font-size-xs);
-}
-
-.statusTable th {
-  text-align: left;
-  padding: 8px 14px;
-  color: var(--text-muted);
-  border-bottom: 1px solid rgba(128, 128, 128, 0.08);
-  font-weight: 500;
-}
-
-.statusTable td {
-  padding: 8px 14px;
-  border-bottom: 1px solid rgba(128, 128, 128, 0.08);
-  color: var(--text-secondary);
-}
-
 .scriptName {
   color: var(--text-primary);
   font-weight: 500;
@@ -290,12 +477,6 @@
   border-radius: var(--radius-sm);
 }
 
-.cronLabel {
-  color: var(--green);
-  font-weight: 600;
-  min-width: 65px;
-}
-
 .warning {
   padding: 8px 14px;
   background: var(--red-dim);
@@ -311,4 +492,8 @@
   gap: 12px;
   font-size: var(--font-size-sm);
   color: var(--text-secondary);
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
