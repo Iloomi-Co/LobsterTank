@@ -149,33 +149,39 @@ spendByModelRoutes.get("/", async (_req, res) => {
       }
     }
 
-    // Query ollama ps for currently loaded (running) models
-    const loadedNames = new Set<string>(); // full names from ollama ps
-    const loadedBases = new Set<string>(); // base names (without :tag)
+    // Query ollama list for all installed local models
+    const installedNames = new Set<string>(); // full names from ollama list
+    const installedBases = new Set<string>(); // base names (without :tag)
     try {
-      const psResult = await safeExec("ollama", ["ps"], { timeout: 5000 });
-      if (psResult.exitCode === 0 && psResult.stdout) {
-        const lines = psResult.stdout.trim().split("\n").slice(1);
+      const listResult = await safeExec("ollama", ["list"], { timeout: 5000 });
+      if (listResult.exitCode === 0 && listResult.stdout) {
+        const lines = listResult.stdout.trim().split("\n").slice(1);
         for (const line of lines) {
           const name = line.split(/\s+/)[0];
           if (name) {
-            loadedNames.add(name);
-            loadedBases.add(name.split(":")[0]);
+            installedNames.add(name);
+            installedBases.add(name.split(":")[0]);
+            // Also add models not yet seen (installed but no invocations)
+            if (!modelStats.has(name)) {
+              getOrCreate(name, "ollama");
+            }
           }
         }
       }
     } catch {}
 
-    function isLoadedLocally(model: string): boolean {
-      if (loadedNames.has(model)) return true;
-      if (loadedBases.has(model)) return true;
-      if (loadedBases.has(model.split(":")[0])) return true;
+    function isInstalledLocally(model: string): boolean {
+      if (installedNames.has(model)) return true;
+      if (installedBases.has(model)) return true;
+      if (installedBases.has(model.split(":")[0])) return true;
       return false;
     }
 
-    // isLocal only if the model is currently loaded in ollama
+    // isLocal if the model is installed in ollama
     for (const entry of modelStats.values()) {
-      entry.isLocal = isLoadedLocally(entry.model);
+      if (entry.provider === "ollama" || isInstalledLocally(entry.model)) {
+        entry.isLocal = true;
+      }
     }
 
     // ── Compute summaries ───────────────────────────────

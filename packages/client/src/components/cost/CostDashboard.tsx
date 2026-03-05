@@ -156,37 +156,77 @@ export function CostDashboard() {
     );
   }
 
+  const localModelCount = models.filter((m) => m.isLocal).length;
+
   // ── Render ────────────────────────────────────────────
 
   return (
     <div className={styles.container}>
-      {/* Hero Row */}
-      <div className={styles.heroRow}>
-        <div className={styles.heroCard}>
-          <span className={styles.heroLabel}>7-Day Total</span>
-          <span className={styles.heroValue}>
-            {modelData ? formatCost(modelData.totalEstimatedCost) : totals ? formatCost(totals.totalCost) : "--"}
-          </span>
+      {/* Page title */}
+      <h1 className={styles.pageHeading}>Model Usage & Cost</h1>
+
+      {/* Stats Row */}
+      <div className={styles.statsRow}>
+        <div className={styles.pills}>
+          <div className={styles.pillGroup}>
+            <span className={styles.pillLabel}>7-Day Total</span>
+            <span className={`${styles.pill} ${styles.pillDark}`}>
+              {modelData ? formatCost(modelData.totalEstimatedCost) : totals ? formatCost(totals.totalCost) : "--"}
+            </span>
+          </div>
+          <div className={styles.pillGroup}>
+            <span className={styles.pillLabel}>Local Savings</span>
+            <span className={`${styles.pill} ${styles.pillGreen}`}>
+              {modelData ? formatCost(modelData.localSavings) : "--"}
+            </span>
+          </div>
+          <div className={styles.pillGroup}>
+            <span className={styles.pillLabel}>Most Active</span>
+            <span className={`${styles.pill} ${styles.pillYellow}`}>
+              {modelData?.mostActiveModel && modelData.mostActiveModel !== "none"
+                ? modelData.mostActiveModel
+                : "--"}
+            </span>
+          </div>
         </div>
-        <div className={styles.heroCard}>
-          <span className={styles.heroLabel}>Local Savings</span>
-          <span className={styles.heroValueGreen}>
-            {modelData ? formatCost(modelData.localSavings) : "--"}
-          </span>
-        </div>
-        <div className={styles.heroCard}>
-          <span className={styles.heroLabel}>Most Active Model</span>
-          <span className={styles.heroValueSm}>
-            {modelData?.mostActiveModel && modelData.mostActiveModel !== "none"
-              ? modelData.mostActiveModel
-              : "--"}
-          </span>
-        </div>
-        <div className={styles.heroCard}>
-          <span className={styles.heroLabel}>Active Models</span>
-          <span className={styles.heroValue}>
-            {modelData ? String(modelData.activeModelCount) : "--"}
-          </span>
+
+        <div className={styles.bigNumbers}>
+          <div className={styles.stat}>
+            <div className={styles.statTop}>
+              <span className={styles.statIcon}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+              </span>
+              <span className={styles.statNumber}>{modelData ? modelData.activeModelCount : "--"}</span>
+            </div>
+            <span className={styles.statLabel}>Active Models</span>
+          </div>
+          <div className={styles.stat}>
+            <div className={styles.statTop}>
+              <span className={styles.statIcon}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+              </span>
+              <span className={styles.statNumber}>{localModelCount}</span>
+            </div>
+            <span className={styles.statLabel}>Local</span>
+          </div>
+          <div className={styles.stat}>
+            <div className={styles.statTop}>
+              <span className={styles.statIcon}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="M12 6v6l4 2"/></svg>
+              </span>
+              <span className={styles.statNumber}>
+                {totals ? `${(totalRatio * 100).toFixed(0)}%` : "--"}
+              </span>
+            </div>
+            <div className={styles.statBottom}>
+              <span className={styles.statLabel}>Cache</span>
+              {totals && (
+                <span className={`${styles.grade} ${totalRatio >= 0.7 ? styles.gradeGood : totalRatio >= 0.4 ? styles.gradeFair : styles.gradeCold}`}>
+                  {ratioLabel(totalRatio)}
+                </span>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 

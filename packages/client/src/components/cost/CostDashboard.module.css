@@ -28,62 +28,138 @@
   color: var(--yellow);
 }
 
-/* ── Hero Row ─────────────────────────────── */
+/* ── Page Heading ─────────────────────────── */
 
-.heroRow {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 24px;
-}
-
-.heroCard {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  padding: 32px;
-  background: var(--bg-panel);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-panel);
-}
-
-.heroLabel {
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-normal);
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
-.heroValue {
+.pageHeading {
   font-size: var(--font-size-3xl);
-  font-weight: var(--font-weight-normal);
+  font-weight: var(--font-weight-light);
   color: var(--text-primary);
-  line-height: 1;
   letter-spacing: -0.03em;
 }
 
-.heroValueRow {
+/* ── Stats Row ────────────────────────────── */
+
+.statsRow {
   display: flex;
-  align-items: baseline;
-  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
 }
 
-.heroDelta {
+.pills {
+  display: flex;
+  align-items: flex-end;
+  gap: 24px;
+}
+
+.pillGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pillLabel {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-normal);
+  color: var(--text-secondary);
+  margin-left: 10px;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 18px;
+  border-radius: 999px;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+}
+
+.pillDark {
+  background: var(--text-primary);
+  color: #ffffff;
+}
+
+.pillYellow {
+  background: #F2D96B;
+  color: var(--text-primary);
+}
+
+.pillGreen {
+  background: #B4E33D;
+  color: var(--text-primary);
+}
+
+.bigNumbers {
+  display: flex;
+  align-items: flex-start;
+  gap: 48px;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.statTop {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.statIcon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-primary);
+  flex-shrink: 0;
+}
+
+.statNumber {
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-light);
+  color: var(--text-primary);
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.statLabel {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-normal);
+  color: var(--text-secondary);
+  margin-left: 10px;
+}
+
+.statBottom {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.grade {
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-semibold);
-  padding: 4px 10px;
-  border-radius: var(--radius-sm);
+  padding: 3px 12px;
+  border-radius: 999px;
 }
 
-.deltaUp {
-  color: var(--red);
-  background: var(--red-dim);
+.gradeGood {
+  background: #B4E33D;
+  color: #1a1a1a;
 }
 
-.deltaDown {
-  color: var(--green);
-  background: var(--green-dim);
+.gradeFair {
+  background: #F2D96B;
+  color: #1a1a1a;
+}
+
+.gradeCold {
+  background: var(--red);
+  color: #ffffff;
 }
 
 /* ── Card ─────────────────────────────────── */
@@ -568,26 +644,6 @@
   white-space: nowrap;
 }
 
-/* ── Hero Variants ───────────────────────── */
-
-.heroValueGreen {
-  font-size: var(--font-size-3xl);
-  font-weight: var(--font-weight-normal);
-  color: var(--green);
-  line-height: 1;
-  letter-spacing: -0.03em;
-}
-
-.heroValueSm {
-  font-size: var(--font-size-xl);
-  font-weight: var(--font-weight-medium);
-  color: var(--text-primary);
-  line-height: 1;
-  letter-spacing: -0.02em;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
 
 /* ── Est Label ───────────────────────────── */
 
