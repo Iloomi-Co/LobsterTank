@@ -5,6 +5,7 @@ import { api } from "../../api/client.js";
 import { getModelColor, formatTokens as fmtTokens } from "../../utils/modelColors.js";
 import { WeeklyCostChart } from "../panels/WeeklyCostChart.js";
 import { TokensByModel } from "../panels/TokensByModel.js";
+import { DayDetail } from "./DayDetail.js";
 import styles from "./CostDashboard.module.css";
 
 // ── Types ───────────────────────────────────────────────
@@ -42,27 +43,18 @@ interface ModelEntry {
   agents: string[];
 }
 
-interface DailyModelSpend {
-  date: string;
-  models: Record<string, number>;
-  total: number;
-}
-
 interface ModelSpendResponse {
   models: ModelEntry[];
   totalEstimatedCost: number;
   localSavings: number;
   activeModelCount: number;
   mostActiveModel: string;
-  daily: DailyModelSpend[];
+  daily: any[];
   lastUpdated: string;
   error?: string;
 }
 
 // ── Constants ───────────────────────────────────────────
-
-const SHORT_DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-
 
 const PROVIDER_VARIANTS: Record<string, "blue" | "green" | "purple" | "muted"> = {
   anthropic: "blue",
@@ -71,11 +63,6 @@ const PROVIDER_VARIANTS: Record<string, "blue" | "green" | "purple" | "muted"> =
 };
 
 // ── Helpers ─────────────────────────────────────────────
-
-function formatDate(dateStr: string): string {
-  const d = new Date(dateStr + "T12:00:00");
-  return `${SHORT_DAYS[d.getDay()]} ${d.getMonth() + 1}/${d.getDate()}`;
-}
 
 function formatCost(n: number): string {
   if (n >= 10) return `$${n.toFixed(2)}`;
@@ -117,15 +104,10 @@ export function CostDashboard() {
 
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
 
-  const daily = spendData?.daily ?? [];
   const totals = spendData?.totals ?? null;
   const totalRatio = totals ? cacheHitRatio(totals) : 0;
 
   const models = modelData?.models ?? [];
-  const modelDaily = modelData?.daily ?? [];
-
-  const selectedDayData = daily.find((d) => d.date === selectedDay) ?? null;
-  const selectedDayModel = modelDaily.find((d) => d.date === selectedDay) ?? null;
 
   // Total cost by model for horizontal bar chart
   const modelCostTotal = models.reduce((s, m) => s + m.estimatedCost, 0);
@@ -230,10 +212,65 @@ export function CostDashboard() {
         </div>
       </div>
 
+      {/* 30-Day Cost Chart */}
+      <WeeklyCostChart days={30} selectedDay={selectedDay} onSelectDay={setSelectedDay} />
+
+      {/* Day Detail */}
+      <DayDetail date={selectedDay} onClose={() => setSelectedDay(null)} />
+
+      {/* Two-column: Token Donut + Cache Efficiency */}
+      <div className={styles.twoCol}>
+        {/* Token Distribution by Model (interactive donut) */}
+        <TokensByModel />
+
+        {/* Cache Efficiency */}
+        <div className={styles.card}>
+          <div className={styles.cardHeader}>
+            <h3 className={styles.cardTitle}>Cache Efficiency</h3>
+          </div>
+          {totals ? (
+            <div className={styles.cacheContent}>
+              <div className={styles.cacheBar}>
+                <div className={styles.cacheBarRead} style={{ width: `${totalRatio * 100}%` }} />
+                <div className={styles.cacheBarWrite} style={{ width: `${(1 - totalRatio) * 100}%` }} />
+              </div>
+              <div className={styles.cacheLabels}>
+                <span>
+                  Reads: {formatTokens(totals.cacheRead)} ({(totalRatio * 100).toFixed(1)}%)
+                  {" — "}{formatCost(totals.cacheReadCost)}
+                </span>
+                <span>
+                  Writes: {formatTokens(totals.cacheWrite)} ({((1 - totalRatio) * 100).toFixed(1)}%)
+                  {" — "}{formatCost(totals.cacheWriteCost)}
+                </span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8 }}>
+                <Badge label={ratioLabel(totalRatio)} variant={ratioVariant(totalRatio)} />
+              </div>
+              <p className={styles.cacheNote}>
+                {totalRatio >= 0.7
+                  ? "Cache is working well — most tokens are served from cache at 1/10th the cost of fresh writes."
+                  : totalRatio >= 0.4
+                    ? "Cache hit ratio is moderate. Many sessions are creating new context rather than reusing cached prompts."
+                    : "Cache hit ratio is low — most tokens are fresh writes at full price. Short or unique sessions prevent cache reuse."
+                }
+              </p>
+            </div>
+          ) : (
+            <div className={styles.emptyDetail}>Waiting for gateway data...</div>
+          )}
+        </div>
+      </div>
+
+      {/* Section Header */}
+      <div className={styles.sectionHeader}>
+        <h2 className={styles.sectionHeading}>Model Usage Details</h2>
+      </div>
+
       {/* Model Cards */}
-      {models.length > 0 ? (
+      {models.filter((m) => m.invocations > 0).length > 0 ? (
         <div className={styles.modelGrid}>
-          {models.map((m) => (
+          {models.filter((m) => m.invocations > 0).map((m) => (
             <div key={m.model} className={styles.modelCard}>
               <div className={styles.modelCardHeader}>
                 <div className={styles.modelCardTitle}>
@@ -335,121 +372,7 @@ export function CostDashboard() {
         </div>
       )}
 
-      {/* Daily Spend Chart (interactive) */}
-      <WeeklyCostChart />
 
-      {/* Two-column: Token Donut + Cache Efficiency */}
-      <div className={styles.twoCol}>
-        {/* Token Distribution by Model (interactive donut) */}
-        <TokensByModel />
-
-        {/* Cache Efficiency */}
-        <div className={styles.card}>
-          <div className={styles.cardHeader}>
-            <h3 className={styles.cardTitle}>Cache Efficiency</h3>
-          </div>
-          {totals ? (
-            <div className={styles.cacheContent}>
-              <div className={styles.cacheBar}>
-                <div className={styles.cacheBarRead} style={{ width: `${totalRatio * 100}%` }} />
-                <div className={styles.cacheBarWrite} style={{ width: `${(1 - totalRatio) * 100}%` }} />
-              </div>
-              <div className={styles.cacheLabels}>
-                <span>
-                  Reads: {formatTokens(totals.cacheRead)} ({(totalRatio * 100).toFixed(1)}%)
-                  {" — "}{formatCost(totals.cacheReadCost)}
-                </span>
-                <span>
-                  Writes: {formatTokens(totals.cacheWrite)} ({((1 - totalRatio) * 100).toFixed(1)}%)
-                  {" — "}{formatCost(totals.cacheWriteCost)}
-                </span>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8 }}>
-                <Badge label={ratioLabel(totalRatio)} variant={ratioVariant(totalRatio)} />
-              </div>
-              <p className={styles.cacheNote}>
-                {totalRatio >= 0.7
-                  ? "Cache is working well — most tokens are served from cache at 1/10th the cost of fresh writes."
-                  : totalRatio >= 0.4
-                    ? "Cache hit ratio is moderate. Many sessions are creating new context rather than reusing cached prompts."
-                    : "Cache hit ratio is low — most tokens are fresh writes at full price. Short or unique sessions prevent cache reuse."
-                }
-              </p>
-            </div>
-          ) : (
-            <div className={styles.emptyDetail}>Waiting for gateway data...</div>
-          )}
-        </div>
-      </div>
-
-      {/* Day Detail */}
-      <div className={styles.card}>
-        <div className={styles.cardHeader}>
-          <h3 className={styles.cardTitle}>Day Detail</h3>
-        </div>
-        {selectedDayData ? (
-          <div className={styles.dayDetail}>
-            <div className={styles.dayDetailHeader}>
-              <span className={styles.dayDetailTitle}>{formatDate(selectedDayData.date)}</span>
-              <Badge
-                label={`${(cacheHitRatio(selectedDayData) * 100).toFixed(0)}% hit`}
-                variant={ratioVariant(cacheHitRatio(selectedDayData))}
-              />
-            </div>
-            <div className={styles.dayDetailGrid}>
-              <div className={styles.dayDetailItem}>
-                <span className={styles.dayDetailLabel}>Total Cost</span>
-                <span className={styles.dayDetailValue}>{formatCost(selectedDayData.totalCost)}</span>
-              </div>
-              <div className={styles.dayDetailItem}>
-                <span className={styles.dayDetailLabel}>Total Tokens</span>
-                <span className={styles.dayDetailValue}>{formatTokens(selectedDayData.totalTokens)}</span>
-              </div>
-              <div className={styles.dayDetailItem}>
-                <span className={styles.dayDetailLabel}>Input</span>
-                <span className={styles.dayDetailValue}>{formatTokens(selectedDayData.input)} — {formatCost(selectedDayData.inputCost)}</span>
-              </div>
-              <div className={styles.dayDetailItem}>
-                <span className={styles.dayDetailLabel}>Output</span>
-                <span className={styles.dayDetailValue}>{formatTokens(selectedDayData.output)} — {formatCost(selectedDayData.outputCost)}</span>
-              </div>
-              <div className={styles.dayDetailItem}>
-                <span className={styles.dayDetailLabel}>Cache Read</span>
-                <span className={styles.dayDetailValue}>{formatTokens(selectedDayData.cacheRead)} — {formatCost(selectedDayData.cacheReadCost)}</span>
-              </div>
-              <div className={styles.dayDetailItem}>
-                <span className={styles.dayDetailLabel}>Cache Write</span>
-                <span className={styles.dayDetailValue}>{formatTokens(selectedDayData.cacheWrite)} — {formatCost(selectedDayData.cacheWriteCost)}</span>
-              </div>
-            </div>
-            {/* Model cost estimates for selected day */}
-            {selectedDayModel && Object.keys(selectedDayModel.models).length > 0 && (
-              <>
-                <div style={{ marginTop: 16, borderTop: "1px solid var(--border-subtle)", paddingTop: 12 }}>
-                  <span className={styles.dayDetailLabel}>Model Costs</span>
-                </div>
-                <div className={styles.dayDetailGrid} style={{ marginTop: 8 }}>
-                  {Object.entries(selectedDayModel.models).map(([model, cost]) => {
-                    const m = models.find((x) => x.model === model);
-                    return (
-                      <div key={model} className={styles.dayDetailItem}>
-                        <span className={styles.dayDetailLabel}>{model}</span>
-                        <span className={styles.dayDetailValue}>
-                          {m?.isLocal ? "FREE" : formatCost(cost)}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </>
-            )}
-          </div>
-        ) : (
-          <div className={styles.emptyDetail}>
-            Click a bar in the chart to view daily breakdown
-          </div>
-        )}
-      </div>
     </div>
   );
 }

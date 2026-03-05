@@ -5,6 +5,22 @@
   gap: 32px;
 }
 
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 20px;
+  margin-bottom: 4px;
+}
+
+.sectionHeading {
+  font-size: calc(var(--font-size-3xl) * 0.85);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
 .loading,
 .error,
 .offlineNotice {

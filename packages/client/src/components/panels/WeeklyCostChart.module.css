@@ -1,5 +1,5 @@
 .card {
-  background: var(--bg-panel);
+  background: color-mix(in srgb, var(--bg-panel) 50%, transparent);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-panel);
@@ -46,6 +46,13 @@
   align-items: center;
   gap: 6px;
   height: 100%;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.barColSelected .barLabel {
+  color: var(--text-primary);
+  font-weight: var(--font-weight-semibold);
 }
 
 .barCost {

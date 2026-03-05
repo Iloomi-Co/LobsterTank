@@ -25,8 +25,9 @@ interface Tooltip {
 
 const SHORT_DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-function formatDate(dateStr: string): string {
+function formatDate(dateStr: string, compact = false): string {
   const d = new Date(dateStr + "T12:00:00");
+  if (compact) return `${d.getMonth() + 1}/${d.getDate()}`;
   return `${SHORT_DAYS[d.getDay()]} ${d.getMonth() + 1}/${d.getDate()}`;
 }
 
@@ -37,7 +38,13 @@ function formatCost(n: number): string {
   return `$${n.toFixed(4)}`;
 }
 
-export function WeeklyCostChart() {
+interface WeeklyCostChartProps {
+  days?: number;
+  selectedDay?: string | null;
+  onSelectDay?: (date: string | null) => void;
+}
+
+export function WeeklyCostChart({ days = 7, selectedDay, onSelectDay }: WeeklyCostChartProps = {}) {
   const [daily, setDaily] = useState<DailyModelSpend[]>([]);
   const [models, setModels] = useState<ModelEntry[]>([]);
   const [totalCost, setTotalCost] = useState<number | null>(null);
@@ -45,14 +52,14 @@ export function WeeklyCostChart() {
   const chartRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    api.spendByModel().then((res) => {
+    api.spendByModel(days).then((res) => {
       if (res.ok && res.data) {
         setDaily(res.data.daily ?? []);
         setModels(res.data.models ?? []);
         setTotalCost(res.data.totalEstimatedCost ?? null);
       }
     });
-  }, []);
+  }, [days]);
 
   const allModelNames = useMemo(() => {
     const set = new Set<string>();
@@ -92,7 +99,7 @@ export function WeeklyCostChart() {
   return (
     <div className={styles.card}>
       <div className={styles.header}>
-        <span className={styles.title}>7-Day Cost</span>
+        <span className={styles.title}>{days}-Day Cost</span>
         {totalCost !== null && (
           <span className={styles.total}>{formatCost(totalCost)}</span>
         )}
@@ -106,11 +113,19 @@ export function WeeklyCostChart() {
         {daily.map((day) => {
           const pct = (day.total / maxTotal) * 100;
           const isToday = day.date === todayStr;
+          const isSelected = selectedDay === day.date;
+          const isDimmed = selectedDay != null && !isSelected;
           return (
-            <div key={day.date} className={styles.barCol}>
-              <span className={styles.barCost}>{formatCost(day.total)}</span>
+            <div
+              key={day.date}
+              className={`${styles.barCol} ${isSelected ? styles.barColSelected : ""}`}
+              onClick={() => onSelectDay?.(isSelected ? null : day.date)}
+            >
+              {days <= 10 && (
+                <span className={styles.barCost}>{formatCost(day.total)}</span>
+              )}
               <div className={styles.barTrack}>
-                <div className={styles.barFill} style={{ height: `${Math.max(pct, 3)}%` }}>
+                <div className={styles.barFill} style={{ height: `${Math.max(pct, 3)}%`, opacity: isDimmed ? 0.4 : 1, transition: "opacity 0.2s" }}>
                   {allModelNames.map((name) => {
                     const cost = day.models[name] ?? 0;
                     const segPct = day.total > 0 ? (cost / day.total) * 100 : 0;
@@ -133,7 +148,7 @@ export function WeeklyCostChart() {
                 </div>
               </div>
               <span className={`${styles.barLabel} ${isToday ? styles.barLabelToday : ""}`}>
-                {formatDate(day.date)}
+                {formatDate(day.date, days > 10)}
               </span>
             </div>
           );

@@ -132,6 +132,53 @@ export interface ApiResponse<T = unknown> {
   timestamp: string;
 }
 
+// --- Day Detail types ---
+
+export interface DayDetailHourly {
+  hour: number;
+  cost: number;
+  invocations: number;
+  models: Record<string, number>;
+}
+
+export interface DayDetailSession {
+  sessionId: string;
+  cost: number;
+  invocations: number;
+  inputTokens: number;
+  outputTokens: number;
+  models: string[];
+  firstActivity: string;
+  lastActivity: string;
+}
+
+export interface DayDetailAgent {
+  name: string;
+  cost: number;
+  invocations: number;
+  sessions: DayDetailSession[];
+}
+
+export interface DayDetailModelStats {
+  cost: number;
+  invocations: number;
+  inputTokens: number;
+  outputTokens: number;
+}
+
+export interface DayDetailResponse {
+  date: string;
+  totalCost: number;
+  totalInvocations: number;
+  totalInputTokens: number;
+  totalOutputTokens: number;
+  totalCacheRead: number;
+  totalCacheWrite: number;
+  hourly: DayDetailHourly[];
+  agents: DayDetailAgent[];
+  models: Record<string, DayDetailModelStats>;
+}
+
 // --- Scheduler types ---
 
 export interface SchedulerCrontabEntry {
