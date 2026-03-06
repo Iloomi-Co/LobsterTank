@@ -3,6 +3,25 @@ import styles from "./TopBar.module.css";
 
 export type ViewType = "dashboard" | "cost" | "scheduler" | "determinism";
 
+const VIEW_PATHS: Record<ViewType, string> = {
+  dashboard: "/",
+  cost: "/cost",
+  scheduler: "/scheduler",
+  determinism: "/determinism",
+};
+
+const PATH_VIEWS: Record<string, ViewType> = Object.fromEntries(
+  Object.entries(VIEW_PATHS).map(([v, p]) => [p, v as ViewType])
+);
+
+export function viewFromPath(pathname: string): ViewType {
+  return PATH_VIEWS[pathname] ?? "dashboard";
+}
+
+export function pathFromView(view: ViewType): string {
+  return VIEW_PATHS[view];
+}
+
 interface TopBarProps {
   instances: { id: string; name: string }[];
   activeInstance: string;

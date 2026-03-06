@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Shell } from "./components/layout/Shell.js";
-import { TopBar, type ViewType } from "./components/layout/TopBar.js";
+import { TopBar, type ViewType, viewFromPath, pathFromView } from "./components/layout/TopBar.js";
 import { WelcomeRow } from "./components/layout/WelcomeRow.js";
 import { StatsRow } from "./components/layout/StatsRow.js";
 import { useTheme } from "./hooks/useTheme.js";
@@ -26,7 +26,21 @@ export function App() {
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [emergencyConfirm, setEmergencyConfirm] = useState(false);
-  const [view, setView] = useState<ViewType>("dashboard");
+  const [view, setView] = useState<ViewType>(() => viewFromPath(window.location.pathname));
+
+  const navigateTo = useCallback((v: ViewType) => {
+    setView(v);
+    const path = pathFromView(v);
+    if (window.location.pathname !== path) {
+      history.pushState(null, "", path);
+    }
+  }, []);
+
+  useEffect(() => {
+    const onPopState = () => setView(viewFromPath(window.location.pathname));
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
   const { theme, toggle: toggleTheme } = useTheme();
 
   useEffect(() => {
@@ -72,7 +86,7 @@ export function App() {
             theme={theme}
             onToggleTheme={toggleTheme}
             activeView={view}
-            onViewChange={setView}
+            onViewChange={navigateTo}
           />
         }
       >

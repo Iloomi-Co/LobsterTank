@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { DataTable } from "../shared/DataTable.js";
 import { StatusDot } from "../shared/StatusDot.js";
 import { Badge } from "../shared/Badge.js";
 import { HelplessnessWarning } from "./HelplessnessWarning.js";
@@ -64,7 +63,6 @@ const STATUS_MAP: Record<string, "online" | "offline" | "warning"> = {
   missing: "warning",
 };
 
-
 const SPARK_CLASS: Record<string, string> = {
   success: styles.sparkSuccess,
   failure: styles.sparkFailure,
@@ -92,6 +90,109 @@ function RunSparkline({ history }: { history: { timestamp: string; status: strin
   );
 }
 
+function formatCardCost(entry: CrontabEntry): { text: string; className?: string; title?: string } {
+  const c = entry.costEstimate;
+  if (!c || c.weeklyTotal === null) {
+    return { text: "\u2014", className: styles.taskStatMuted };
+  }
+  if (c.weeklyTotal === 0) {
+    return { text: "Free", className: styles.taskStatFree };
+  }
+  const weekly = c.weeklyTotal < 0.01
+    ? `~$${c.weeklyTotal.toFixed(4)}/wk`
+    : `~$${c.weeklyTotal.toFixed(2)}/wk`;
+  const perRun = c.lastRunCost !== null
+    ? (c.lastRunCost < 0.01 ? `$${c.lastRunCost.toFixed(4)}` : `$${c.lastRunCost.toFixed(2)}`)
+    : "\u2014";
+  return { text: weekly, title: `${c.runsThisWeek} runs this week \u00b7 ${perRun}/run` };
+}
+
+function TaskCard({
+  entry,
+  runningScript,
+  onCardClick,
+  onRun,
+  onViewLogs,
+  onToggle,
+}: {
+  entry: CrontabEntry;
+  runningScript: string | null;
+  onCardClick: (entry: CrontabEntry) => void;
+  onRun: (scriptName: string) => void;
+  onViewLogs: (scriptName: string) => void;
+  onToggle: (lineIndex: number, enabled: boolean) => void;
+}) {
+  const cost = formatCardCost(entry);
+  const isRunning = runningScript === entry.script;
+
+  return (
+    <div className={styles.taskCard} onClick={() => onCardClick(entry)}>
+      <div className={styles.taskCardHeader}>
+        <div className={styles.taskCardTitle}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <StatusDot status={STATUS_MAP[entry.status]} />
+            <span className={styles.taskCardName}>{entry.script}</span>
+          </div>
+          {entry.description && (
+            <span className={styles.taskCardDesc}>{entry.description}</span>
+          )}
+        </div>
+        <Badge label={entry.status} variant={entry.status === "active" ? "green" : entry.status === "paused" ? "muted" : "yellow"} />
+      </div>
+
+      <div className={styles.taskStats}>
+        <div className={styles.taskStat}>
+          <span className={styles.taskStatLabel}>Schedule</span>
+          <span className={styles.taskStatValue}><code>{entry.schedule}</code></span>
+        </div>
+        <div className={styles.taskStat}>
+          <span className={styles.taskStatLabel}>Frequency</span>
+          <span className={styles.taskStatValue}>{cronToHuman(entry.schedule)}</span>
+        </div>
+        <div className={styles.taskStat}>
+          <span className={styles.taskStatLabel}>Last Run</span>
+          <span className={styles.taskStatValue}>{entry.lastRun ?? "\u2014"}</span>
+        </div>
+        <div className={styles.taskStat}>
+          <span className={styles.taskStatLabel}>Cost</span>
+          <span className={`${styles.taskStatValue} ${cost.className ?? ""}`} title={cost.title}>
+            {cost.text}
+          </span>
+        </div>
+      </div>
+
+      <RunSparkline history={entry.runHistory} />
+
+      {entry.registrationMeta?.agent && (
+        <span className={styles.agentChip}>&rarr; {entry.registrationMeta.agent}</span>
+      )}
+
+      <div className={styles.cardActions} onClick={(e) => e.stopPropagation()}>
+        {entry.script.endsWith(".sh") && entry.status !== "missing" && (
+          <button
+            className={`${styles.actionBtn} ${styles.runBtn}`}
+            disabled={isRunning || !!runningScript}
+            onClick={() => onRun(entry.script)}
+          >
+            {isRunning ? "Running..." : "Run"}
+          </button>
+        )}
+        {entry.logFile && (
+          <button className={styles.actionBtn} onClick={() => onViewLogs(entry.script)}>
+            Logs
+          </button>
+        )}
+        <button
+          className={styles.actionBtn}
+          onClick={() => onToggle(entry.lineIndex, entry.status === "paused")}
+        >
+          {entry.status === "paused" ? "Enable" : "Disable"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function CrontabSection({ entries, pathLine, onToggle, onViewLogs, onViewScript, onRunScript, onForceNewSession, dismissedHelplessness, onDismissHelplessness }: CrontabSectionProps) {
   const [runningScript, setRunningScript] = useState<string | null>(null);
   const agentEntries = entries.filter((e) => e.category === "agent");
@@ -108,172 +209,63 @@ export function CrontabSection({ entries, pathLine, onToggle, onViewLogs, onView
     }
   };
 
-  const baseColumns = [
-    {
-      key: "status",
-      header: "Status",
-      width: "80px",
-      render: (e: CrontabEntry) => (
-        <StatusDot status={STATUS_MAP[e.status]} label={e.status} />
-      ),
-    },
-    {
-      key: "runHistory",
-      header: "History",
-      width: "90px",
-      render: (e: CrontabEntry) => <RunSparkline history={e.runHistory} />,
-    },
-    {
-      key: "schedule",
-      header: "Schedule",
-      width: "120px",
-      render: (e: CrontabEntry) => <code>{e.schedule}</code>,
-    },
-    {
-      key: "frequency",
-      header: "Frequency",
-      width: "200px",
-      render: (e: CrontabEntry) => (
-        <span style={{ color: "var(--text-secondary)" }}>{cronToHuman(e.schedule)}</span>
-      ),
-    },
-    {
-      key: "script",
-      header: "Script",
-      width: "220px",
-      render: (e: CrontabEntry) => (
-        <span className={styles.scriptCell}>
-          {e.script}
-          {e.scriptPath && (
-            <a
-              href={`vscode://file${e.scriptPath}`}
-              className={styles.codeLink}
-              onClick={(ev) => ev.stopPropagation()}
-              title={`Open ${e.scriptPath} in VS Code`}
-            >
-              &lt;/&gt;
-            </a>
-          )}
-        </span>
-      ),
-    },
-    {
-      key: "description",
-      header: "Description",
-      render: (e: CrontabEntry) => (
-        <span>
-          {e.description}
-          {e.registrationMeta?.agent && (
-            <span className={styles.agentBadge}> &rarr; {e.registrationMeta.agent}</span>
-          )}
-        </span>
-      ),
-    },
-    {
-      key: "lastRun",
-      header: "Last Run",
-      width: "150px",
-      render: (e: CrontabEntry) => (
-        <span style={{ color: "var(--text-muted)" }}>{e.lastRun ?? "--"}</span>
-      ),
-    },
-    {
-      key: "cost",
-      header: "Cost",
-      width: "80px",
-      render: (e: CrontabEntry) => {
-        const c = e.costEstimate;
-        if (!c || c.weeklyTotal === null) {
-          return <span className={styles.costDash}>&mdash;</span>;
-        }
-        if (c.weeklyTotal === 0) {
-          return <span className={styles.costFree}>Free</span>;
-        }
-        const weekly = c.weeklyTotal < 0.01
-          ? `~$${c.weeklyTotal.toFixed(4)}`
-          : `~$${c.weeklyTotal.toFixed(2)}`;
-        const perRun = c.lastRunCost !== null
-          ? (c.lastRunCost < 0.01 ? `$${c.lastRunCost.toFixed(4)}` : `$${c.lastRunCost.toFixed(2)}`)
-          : "—";
-        const tip = `${c.runsThisWeek} runs this week · ${perRun}/run`;
-        return (
-          <span className={styles.costCell} title={tip}>{weekly}</span>
-        );
-      },
-    },
-    {
-      key: "actions",
-      header: "",
-      width: "190px",
-      render: (e: CrontabEntry) => {
-        const isRunning = runningScript === e.script;
-        return (
-          <div className={styles.actions}>
-            {e.script.endsWith(".sh") && e.status !== "missing" && (
-              <button
-                className={`${styles.actionBtn} ${styles.runBtn}`}
-                disabled={isRunning || !!runningScript}
-                onClick={(ev) => { ev.stopPropagation(); handleRun(e.script); }}
-              >
-                {isRunning ? "Running..." : "Run"}
-              </button>
-            )}
-            {e.logFile && (
-              <button className={styles.actionBtn} onClick={(ev) => { ev.stopPropagation(); onViewLogs(e.script); }}>
-                Logs
-              </button>
-            )}
-            <button
-              className={styles.actionBtn}
-              onClick={(ev) => { ev.stopPropagation(); onToggle(e.lineIndex, e.status === "paused"); }}
-            >
-              {e.status === "paused" ? "Enable" : "Disable"}
-            </button>
-          </div>
-        );
-      },
-    },
-  ];
-
   return (
     <>
-      <div className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <div className={styles.sectionTitle}>
-            Agent Automations
-            <Badge label={`${agentActive}/${agentEntries.length}`} variant="green" />
-          </div>
-        </div>
-        <div className={styles.body}>
-          <DataTable columns={baseColumns} data={agentEntries} rowKey={(e) => String(e.lineIndex)} onRowClick={onViewScript} compact />
-          {onForceNewSession && onDismissHelplessness && agentEntries
-            .filter((e) => e.helplessness?.detected && !dismissedHelplessness?.has(e.script))
-            .map((e) => (
-              <HelplessnessWarning
-                key={e.script}
-                scriptName={e.script}
-                agentName={e.helplessness!.agentName}
-                patterns={e.helplessness!.patterns}
-                recommendation={e.helplessness!.recommendation}
-                onForceNewSession={onForceNewSession}
-                onDismiss={onDismissHelplessness}
-              />
-            ))}
+      {/* Agent Automations */}
+      <div className={styles.sectionHeader}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <span className={styles.sectionHeading}>Agent Automations</span>
+          <Badge label={`${agentActive}/${agentEntries.length}`} variant="green" />
         </div>
       </div>
+      <div className={styles.taskGrid}>
+        {agentEntries.map((entry) => (
+          <TaskCard
+            key={entry.lineIndex}
+            entry={entry}
+            runningScript={runningScript}
+            onCardClick={onViewScript}
+            onRun={handleRun}
+            onViewLogs={onViewLogs}
+            onToggle={onToggle}
+          />
+        ))}
+      </div>
+      {onForceNewSession && onDismissHelplessness && agentEntries
+        .filter((e) => e.helplessness?.detected && !dismissedHelplessness?.has(e.script))
+        .map((e) => (
+          <HelplessnessWarning
+            key={e.script}
+            scriptName={e.script}
+            agentName={e.helplessness!.agentName}
+            patterns={e.helplessness!.patterns}
+            recommendation={e.helplessness!.recommendation}
+            onForceNewSession={onForceNewSession}
+            onDismiss={onDismissHelplessness}
+          />
+        ))}
 
-      <div className={`${styles.section} ${styles.systemSection}`}>
-        <div className={styles.sectionHeader}>
-          <div className={styles.sectionTitle}>
-            System Infrastructure
-            <Badge label={`${sysActive}/${systemEntries.length}`} variant="muted" />
-          </div>
-        </div>
-        <div className={styles.body}>
-          <DataTable columns={baseColumns} data={systemEntries} rowKey={(e) => String(e.lineIndex)} onRowClick={onViewScript} compact />
-          {pathLine && <div className={styles.pathLine}>{pathLine}</div>}
+      {/* System Infrastructure */}
+      <div className={`${styles.sectionHeader} ${styles.systemSection}`}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <span className={styles.sectionHeading}>System Infrastructure</span>
+          <Badge label={`${sysActive}/${systemEntries.length}`} variant="muted" />
         </div>
       </div>
+      <div className={`${styles.taskGrid} ${styles.systemSection}`}>
+        {systemEntries.map((entry) => (
+          <TaskCard
+            key={entry.lineIndex}
+            entry={entry}
+            runningScript={runningScript}
+            onCardClick={onViewScript}
+            onRun={handleRun}
+            onViewLogs={onViewLogs}
+            onToggle={onToggle}
+          />
+        ))}
+      </div>
+      {pathLine && <div className={styles.pathLine}>{pathLine}</div>}
     </>
   );
 }

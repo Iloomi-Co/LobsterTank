@@ -136,10 +136,9 @@ export function TaskScheduler() {
 
   if (!data) return null;
 
-  const fmtCost = (n: number) => n < 0.01 ? `~$${n.toFixed(4)}` : `~$${n.toFixed(2)}`;
-
-  const agentCount = data.crontab.entries.filter((e) => e.category === "agent").length;
-  const systemCount = data.crontab.entries.filter((e) => e.category === "system").length;
+  const activeCount = data.crontab.entries.filter((e) => e.status === "active").length;
+  const pausedCount = data.crontab.entries.filter((e) => e.status === "paused").length;
+  const missingCount = data.crontab.entries.filter((e) => e.status === "missing").length;
 
   const ocHasEntries = !data.ocCrons.isEmpty && data.ocCrons.entries.length > 0;
   const ocOk = !ocHasEntries;
@@ -155,41 +154,61 @@ export function TaskScheduler() {
 
   return (
     <div className={styles.container}>
-      <div className={styles.header}>
-        <span className={styles.headerTitle}>Task Scheduler</span>
-        <div className={styles.headerChips}>
+      <h1 className={styles.pageHeading}>Task Scheduler</h1>
+
+      <div className={styles.statsRow}>
+        <div className={styles.pills}>
           <span
-            className={`${styles.chip} ${ocOk ? styles.chipOk : styles.chipDanger}`}
+            className={styles.pill}
             onClick={ocHasEntries ? () => setOcExpanded(!ocExpanded) : undefined}
             style={ocHasEntries ? { cursor: "pointer" } : undefined}
           >
             {ocLabel}
+            <span className={`${styles.pillDot} ${ocOk ? styles.pillDotOk : styles.pillDotDanger}`}>
+              {ocOk ? "\u2713" : "\u2717"}
+            </span>
             {ocHasEntries && (
               <span className={styles.expandArrow} data-open={ocExpanded}>&#9654;</span>
             )}
           </span>
           <span
-            className={`${styles.chip} ${launchdOk ? styles.chipOk : styles.chipDanger}`}
+            className={styles.pill}
             onClick={hasRogue ? () => setLaunchdExpanded(!launchdExpanded) : undefined}
             style={hasRogue ? { cursor: "pointer" } : undefined}
           >
             {launchdLabel}
+            <span className={`${styles.pillDot} ${launchdOk ? styles.pillDotOk : styles.pillDotDanger}`}>
+              {launchdOk ? "\u2713" : "\u2717"}
+            </span>
             {hasRogue && (
               <span className={styles.expandArrow} data-open={launchdExpanded}>&#9654;</span>
             )}
           </span>
         </div>
-        <span className={styles.headerMeta}>
-          {agentCount} agent &middot; {systemCount} system
-          {data.budgetSummary.weeklyTotal > 0 && (
-            <>
-              <br />
-              Automation cost: {fmtCost(data.budgetSummary.weeklyTotal)}/wk &middot;{" "}
-              {fmtCost(data.budgetSummary.dailyAverage)}/day &middot;{" "}
-              {fmtCost(data.budgetSummary.estimatedMonthly)}/mo
-            </>
-          )}
-        </span>
+
+        <div className={styles.bigNumbers}>
+          <div className={styles.stat}>
+            <div className={styles.statTop}>
+              <span className={styles.statIcon}>&#9654;</span>
+              <span className={styles.statNumber}>{activeCount}</span>
+            </div>
+            <span className={styles.statLabel}>Active</span>
+          </div>
+          <div className={styles.stat}>
+            <div className={styles.statTop}>
+              <span className={styles.statIcon}>&#9208;</span>
+              <span className={styles.statNumber}>{pausedCount}</span>
+            </div>
+            <span className={styles.statLabel}>Paused</span>
+          </div>
+          <div className={styles.stat}>
+            <div className={styles.statTop}>
+              <span className={styles.statIcon}>&#9888;</span>
+              <span className={styles.statNumber}>{missingCount}</span>
+            </div>
+            <span className={styles.statLabel}>Missing</span>
+          </div>
+        </div>
       </div>
 
       {ocExpanded && ocHasEntries && (
