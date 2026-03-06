@@ -13,7 +13,7 @@ identityRoutes.get("/", async (_req, res) => {
     const raw = await readFile(join(WORKSPACE, "IDENTITY.md"), "utf-8");
     const lines = raw.split("\n");
 
-    let name = "Chief";
+    let name = "Unknown";
     let title = "";
     let avatar: string | null = null;
 

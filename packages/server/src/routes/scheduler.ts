@@ -77,8 +77,8 @@ function invalidateHelplessnessCache(scriptName?: string) {
 type RunStatus = "success" | "failure" | "skipped";
 const SKIP_HISTORY_SCRIPTS = new Set(["rogue-watchdog.sh", "ollama"]);
 const FAILURE_RE = /\bError:|ALERT:|\bfailed\b|timeout after \d|exit code [1-9]|All models failed/i;
-const SUCCESS_RE = /POLL_RESULT: completed|exit code 0\b|Audit complete|Email sent|Bee Hive task completed|Activity detected/;
-const SKIP_RE = /NO_MAIL: 0 unseen|Skipping bee-|No activity\b|POLL_RESULT: NO\b|HEARTBEAT_OK/;
+const SUCCESS_RE = /POLL_RESULT: completed|exit code 0\b|Audit complete|Email sent|Activity detected/;
+const SKIP_RE = /NO_MAIL: 0 unseen|Skipping |No activity\b|POLL_RESULT: NO\b|HEARTBEAT_OK/;
 
 function classifyLogBlock(content: string): RunStatus {
   if (FAILURE_RE.test(content)) return "failure";

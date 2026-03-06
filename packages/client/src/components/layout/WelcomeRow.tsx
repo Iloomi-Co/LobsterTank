@@ -9,8 +9,7 @@ export function WelcomeRow() {
     api.agents().then((res) => {
       if (res.ok && res.data?.agents) {
         const main = res.data.agents.find((a: any) => a.id === "main");
-        // "main" agent's display name comes from the workspace convention (Chief)
-        const name = main?.name !== "main" ? main?.name : "Chief";
+        const name = main?.name !== "main" ? main?.name : "Unknown";
         setAgentName(name ?? res.data.agents[0]?.name ?? null);
       }
     });
