@@ -26,6 +26,15 @@
   letter-spacing: -0.02em;
 }
 
+.dayTotal {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+  margin-left: auto;
+  margin-right: 16px;
+}
+
 .closeBtn {
   background: none;
   border: none;
@@ -214,6 +223,24 @@
   font-size: var(--font-size-xs);
   min-width: 36px;
   text-align: right;
+}
+
+/* Model total */
+.modelTotal {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-secondary);
+  padding-top: 10px;
+  margin-top: 6px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.modelTotalCost {
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
 }
 
 /* Empty state */
