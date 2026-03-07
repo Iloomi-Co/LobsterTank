@@ -6,6 +6,7 @@ import { getModelColor, formatTokens as fmtTokens } from "../../utils/modelColor
 import { WeeklyCostChart } from "../panels/WeeklyCostChart.js";
 import { TokensByModel } from "../panels/TokensByModel.js";
 import { DayDetail } from "./DayDetail.js";
+import { CacheHistory } from "./CacheHistory.js";
 import styles from "./CostDashboard.module.css";
 
 // ── Types ───────────────────────────────────────────────
@@ -96,7 +97,7 @@ function ratioLabel(ratio: number): string {
 // ── Component ───────────────────────────────────────────
 
 export function CostDashboard() {
-  const spendFetcher = useCallback(() => api.spend(), []);
+  const spendFetcher = useCallback(() => api.spend(30), []);
   const modelFetcher = useCallback(() => api.spendByModel(), []);
 
   const { data: spendData, error: spendError, loading: spendLoading } = usePolling<SpendResponse>({ fetcher: spendFetcher });
@@ -106,6 +107,11 @@ export function CostDashboard() {
 
   const totals = spendData?.totals ?? null;
   const totalRatio = totals ? cacheHitRatio(totals) : 0;
+
+  // Today's (most recent day) cache ratio
+  const dailyDays = spendData?.daily ?? [];
+  const latestDay = dailyDays.length > 0 ? dailyDays[dailyDays.length - 1] : null;
+  const todayRatio = latestDay ? cacheHitRatio(latestDay) : null;
 
   const models = modelData?.models ?? [];
 
@@ -197,14 +203,14 @@ export function CostDashboard() {
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="15" x2="23" y2="15"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="15" x2="4" y2="15"/></svg>
               </span>
               <span className={styles.statNumber}>
-                {totals ? `${(totalRatio * 100).toFixed(0)}%` : "--"}
+                {todayRatio !== null ? `${(todayRatio * 100).toFixed(0)}%` : "--"}
               </span>
             </div>
             <div className={styles.statBottom}>
               <span className={styles.statLabel}>Cache</span>
-              {totals && (
-                <span className={`${styles.grade} ${totalRatio >= 0.7 ? styles.gradeGood : totalRatio >= 0.4 ? styles.gradeFair : styles.gradeCold}`}>
-                  {ratioLabel(totalRatio)}
+              {todayRatio !== null && (
+                <span className={`${styles.grade} ${todayRatio >= 0.7 ? styles.gradeGood : todayRatio >= 0.4 ? styles.gradeFair : styles.gradeCold}`}>
+                  {ratioLabel(todayRatio)}
                 </span>
               )}
             </div>
@@ -261,6 +267,21 @@ export function CostDashboard() {
           )}
         </div>
       </div>
+
+      {/* Cache Efficiency Trend */}
+      {spendData?.daily && spendData.daily.length > 0 && (
+        <CacheHistory
+          daily={spendData.daily
+            .filter((d) => d.cacheRead + d.cacheWrite > 0)
+            .map((d) => ({
+              date: d.date,
+              ratio: d.cacheRead / (d.cacheRead + d.cacheWrite),
+              cacheRead: d.cacheRead,
+              cacheWrite: d.cacheWrite,
+            }))}
+          avgRatio={totalRatio}
+        />
+      )}
 
       {/* Section Header */}
       <div className={styles.sectionHeader}>

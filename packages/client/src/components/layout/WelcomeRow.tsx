@@ -6,11 +6,19 @@ export function WelcomeRow() {
   const [agentName, setAgentName] = useState("--");
 
   useEffect(() => {
-    api.agents().then((res) => {
+    api.agents().then(async (res) => {
       if (res.ok && res.data?.agents) {
         const main = res.data.agents.find((a: any) => a.id === "main");
-        const name = main?.name !== "main" ? main?.name : "Unknown";
-        setAgentName(name ?? res.data.agents[0]?.name ?? null);
+        const name = main?.name !== "main" ? main?.name : undefined;
+        if (name) {
+          setAgentName(name);
+          return;
+        }
+      }
+      // Fall back to identity endpoint (reads IDENTITY.md)
+      const id = await api.identity();
+      if (id.ok && id.data?.name) {
+        setAgentName(id.data.name);
       }
     });
   }, []);

@@ -8,7 +8,7 @@
 }
 
 .wrapperActive {
-  background: #ffffff;
+  background: var(--bg-panel);
 }
 
 .header {
@@ -58,15 +58,15 @@
   gap: 6px;
   padding: 6px 14px;
   border-radius: 999px;
-  background: #1a1a1a;
+  background: var(--nav-active-bg);
   font-size: var(--font-size-xs);
-  color: #ffffff;
+  color: var(--nav-active-text);
   white-space: nowrap;
 }
 
 .statPillValue {
   font-weight: var(--font-weight-semibold);
-  color: #ffffff;
+  color: var(--nav-active-text);
 }
 
 /* Hourly chart */

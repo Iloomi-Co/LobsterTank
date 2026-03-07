@@ -23,7 +23,7 @@
   display: flex;
   gap: 4px;
   margin-left: auto;
-  background: #F6F6F6;
+  background: var(--surface-chip);
   border-radius: 999px;
   padding: 4px;
 }
@@ -43,8 +43,8 @@
 
 .navActive,
 .navActive:hover {
-  background: var(--text-primary);
-  color: #ffffff;
+  background: var(--nav-active-bg);
+  color: var(--nav-active-text);
   font-weight: var(--font-weight-medium);
 }
 
@@ -64,7 +64,7 @@
   position: relative;
   width: 42px;
   height: 42px;
-  background: #F6F6F6;
+  background: var(--surface-chip);
   border: none;
   border-radius: 50%;
   display: flex;
@@ -76,7 +76,7 @@
 }
 
 .themeBtn:hover {
-  background: #ECECEC;
+  background: var(--surface-chip-hover);
   color: var(--text-primary);
 }
 
@@ -97,7 +97,7 @@
 
 .refreshBtn {
   padding: 8px 20px;
-  background: #F6F6F6;
+  background: var(--surface-chip);
   border: none;
   border-radius: 999px;
   font-size: var(--font-size-sm);
@@ -108,5 +108,5 @@
 
 .refreshBtn:hover {
   color: var(--text-primary);
-  background: #ECECEC;
+  background: var(--surface-chip-hover);
 }

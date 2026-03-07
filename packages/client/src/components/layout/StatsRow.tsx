@@ -44,11 +44,11 @@ export function StatsRow() {
         setTodaySpend(`$${Number(cost).toFixed(2)}`);
       }
 
-      if (spend.data?.totals) {
-        const t = spend.data.totals;
-        const totalCache = (t.cacheRead ?? 0) + (t.cacheWrite ?? 0);
+      if (spend.data?.daily?.length) {
+        const latest = spend.data.daily[spend.data.daily.length - 1];
+        const totalCache = (latest.cacheRead ?? 0) + (latest.cacheWrite ?? 0);
         if (totalCache > 0) {
-          setCacheRatio(t.cacheRead / totalCache);
+          setCacheRatio(latest.cacheRead / totalCache);
         }
       }
 

@@ -1,0 +1,119 @@
+.card {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-panel);
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px 28px 0;
+}
+
+.title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+
+.currentValue {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+
+.chartWrap {
+  flex: 1;
+  padding: 16px 28px 8px;
+  min-height: 160px;
+  position: relative;
+}
+
+.svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.gridLine {
+  stroke: var(--border-primary);
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
+}
+
+.gridLabel {
+  fill: var(--text-muted);
+  font-size: 10px;
+}
+
+.areaFill {
+  opacity: 0.15;
+}
+
+.line {
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.dot {
+  stroke-width: 2;
+  transition: r 0.15s;
+}
+
+.dot:hover {
+  r: 5;
+}
+
+.labels {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 28px 20px;
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.thresholdLine {
+  stroke-dasharray: 6 4;
+  stroke-width: 1;
+}
+
+.thresholdLabel {
+  font-size: 9px;
+}
+
+/* Tooltip */
+.tooltip {
+  position: absolute;
+  pointer-events: none;
+  transform: translate(-50%, -100%);
+  margin-top: -8px;
+  padding: 6px 12px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  white-space: nowrap;
+  z-index: 10;
+  font-size: var(--font-size-xs);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tooltipDate {
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+.tooltipValue {
+  color: var(--text-primary);
+  font-weight: var(--font-weight-semibold);
+}

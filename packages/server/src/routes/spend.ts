@@ -4,9 +4,10 @@ import { safeExec } from "../lib/exec.js";
 
 export const spendRoutes = Router();
 
-spendRoutes.get("/", async (_req, res) => {
+spendRoutes.get("/", async (req, res) => {
   try {
-    const result = await safeExec("openclaw", ["gateway", "usage-cost", "--days", "7", "--json"], { timeout: 10000 });
+    const days = String(Math.min(Math.max(parseInt(req.query.days as string) || 30, 1), 90));
+    const result = await safeExec("openclaw", ["gateway", "usage-cost", "--days", days, "--json"], { timeout: 10000 });
 
     if (result.exitCode !== 0) {
       res.json({
@@ -39,7 +40,7 @@ spendRoutes.get("/", async (_req, res) => {
       data: {
         daily: parsed.daily ?? [],
         totals: parsed.totals ?? null,
-        days: parsed.days ?? 7,
+        days: parsed.days ?? parseInt(days),
         lastUpdated: new Date().toISOString(),
       },
       timestamp: new Date().toISOString(),

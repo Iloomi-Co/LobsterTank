@@ -91,18 +91,18 @@
 }
 
 .pillDark {
-  background: var(--text-primary);
-  color: #ffffff;
+  background: var(--pill-dark-bg);
+  color: var(--pill-dark-text);
 }
 
 .pillYellow {
-  background: #F2D96B;
-  color: var(--text-primary);
+  background: var(--pill-yellow-bg);
+  color: var(--pill-yellow-text);
 }
 
 .pillGreen {
   background: #B4E33D;
-  color: var(--text-primary);
+  color: #1a1a1a;
 }
 
 .bigNumbers {
@@ -127,7 +127,7 @@
   width: 36px;
   height: 36px;
   border-radius: 10px;
-  background: rgba(0, 0, 0, 0.06);
+  background: var(--surface-chip);
   display: flex;
   align-items: center;
   justify-content: center;

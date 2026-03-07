@@ -46,7 +46,7 @@ export function TopBar({
   onViewChange,
 }: TopBarProps) {
   const formatTime = useCallback((d: Date | null) => {
-    if (!d) return "--:--:--";
+    if (!d) return "";
     return d.toLocaleTimeString();
   }, []);
 

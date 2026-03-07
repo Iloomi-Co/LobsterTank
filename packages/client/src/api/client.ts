@@ -25,7 +25,7 @@ export const api = {
   processes: () => request<any[]>("/processes"),
   killProcess: (pid: number) =>
     request<any>("/processes/kill", { method: "POST", body: JSON.stringify({ pid }) }),
-  spend: () => request<any>("/spend"),
+  spend: (days?: number) => request<any>(`/spend${days ? `?days=${days}` : ""}`),
   spendByModel: (days?: number) => request<any>(`/spend/by-model${days ? `?days=${days}` : ""}`),
   spendDayDetail: (date: string) => request<any>(`/spend/by-model/day-detail/${date}`),
   launchd: () => request<any[]>("/launchd"),

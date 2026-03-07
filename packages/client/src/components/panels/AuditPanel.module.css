@@ -38,7 +38,7 @@
   border-radius: 999px;
   font-size: var(--font-size-xs);
   font-weight: 500;
-  color: #fff;
+  color: #1a1a1a;
 }
 
 .rulesBadgeGreen {
@@ -75,7 +75,7 @@
 }
 
 .headerBtn:hover {
-  background: rgba(0, 0, 0, 0.05);
+  background: var(--surface-chip);
 }
 
 .headerBtn:disabled {
@@ -89,8 +89,8 @@
 }
 
 .headerBtnActive:hover {
-  background: #444;
-  color: #fff;
+  background: var(--surface-chip-hover);
+  color: var(--nav-active-text);
 }
 
 /* Row label */
@@ -145,7 +145,7 @@
   min-width: 380px;
   max-width: 380px;
   padding: 28px 24px 24px;
-  background: linear-gradient(135deg, #303030, #111111);
+  background: var(--bg-tertiary);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
   display: flex;
@@ -164,13 +164,13 @@
 .agentCardName {
   font-size: var(--font-size-lg);
   font-weight: var(--font-weight-medium);
-  color: #f0f0f0;
+  color: var(--text-primary);
   letter-spacing: -0.01em;
 }
 
 .agentCardType {
   font-size: var(--font-size-xs);
-  color: #888;
+  color: var(--text-muted);
   margin-top: 3px;
   text-transform: capitalize;
 }
@@ -178,7 +178,7 @@
 .agentCardScore {
   font-size: var(--font-size-2xl);
   font-weight: var(--font-weight-medium);
-  color: #f0f0f0;
+  color: var(--text-primary);
   letter-spacing: -0.02em;
   line-height: 1;
 }
@@ -196,7 +196,7 @@
   align-items: center;
   gap: 14px;
   padding: 12px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid var(--border-primary);
 }
 
 .ruleItem:last-child {
@@ -211,15 +211,15 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  background: #e8e8e8;
-  color: #444;
+  background: var(--surface-chip);
+  color: var(--text-secondary);
 }
 
 .ruleLabel {
   flex: 1;
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-medium);
-  color: #ffffff;
+  color: var(--text-primary);
   min-width: 0;
 }
 
@@ -238,7 +238,7 @@
 }
 
 .ruleStatusFail {
-  background: #444;
+  background: var(--surface-chip-hover);
 }
 
 /* Exempt / n/a states */
@@ -247,17 +247,17 @@
 }
 
 .ruleIconExempt {
-  background: #555;
-  color: #888;
+  background: var(--bg-active);
+  color: var(--text-muted);
 }
 
 .ruleLabelExempt {
-  color: #888;
+  color: var(--text-muted);
 }
 
 .ruleStatusExempt {
   background: transparent;
-  border: 1.5px solid #555;
+  border: 1.5px solid var(--border-primary);
 }
 
 /* Row loading / empty */
@@ -449,7 +449,7 @@
 }
 
 .copyBtn:hover {
-  background: rgba(0, 0, 0, 0.05);
+  background: var(--surface-chip);
 }
 
 .planText {
@@ -521,7 +521,7 @@
 }
 
 .applyBtn:hover {
-  background: rgba(0, 0, 0, 0.05);
+  background: var(--surface-chip);
 }
 
 .applyBtn:disabled {
@@ -545,7 +545,7 @@
 }
 
 .rerunBtn:hover {
-  background: rgba(0, 0, 0, 0.05);
+  background: var(--surface-chip);
 }
 
 .rerunBtn:disabled {

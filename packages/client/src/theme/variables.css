@@ -11,8 +11,8 @@
   --border-subtle: transparent;
 
   --text-primary: #fafafa;
-  --text-secondary: #8f8f99;
-  --text-muted: #62626b;
+  --text-secondary: #a1a1aa;
+  --text-muted: #71717a;
   --text-accent: #00e0a0;
 
   --accent-primary-dim: rgba(0, 224, 160, 0.08);
@@ -28,6 +28,20 @@
   --blue-dim: rgba(0, 200, 255, 0.08);
   --orange: #ff6b35;
   --purple: #a855f7;
+
+  /* ── Component surfaces (dark) ───────────── */
+  --surface-chip: #27272a;
+  --surface-chip-hover: #3f3f46;
+  --nav-active-bg: #fafafa;
+  --nav-active-text: #09090b;
+
+  /* ── Status pills (dark) ─────────────────── */
+  --pill-dark-bg: #27272a;
+  --pill-dark-text: #fafafa;
+  --pill-yellow-bg: rgba(255, 184, 0, 0.15);
+  --pill-yellow-text: #ffb800;
+  --pill-red-bg: rgba(240, 25, 140, 0.15);
+  --pill-red-text: #f0198c;
 
   /* ── Typography ─────────────────────────── */
   --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -92,6 +106,19 @@
 
   --bg-screen: #A4ABB6;
   --bg-page: linear-gradient(to bottom right, #E3E5E6, #F9E9B0);
+
+  --surface-chip: #f4f4f5;
+  --surface-chip-hover: #e4e4e7;
+  --nav-active-bg: #18181b;
+  --nav-active-text: #ffffff;
+
+  /* ── Status pills (light) ────────────────── */
+  --pill-dark-bg: #18181b;
+  --pill-dark-text: #ffffff;
+  --pill-yellow-bg: #F2D96B;
+  --pill-yellow-text: #1a1a1a;
+  --pill-red-bg: #c0126e;
+  --pill-red-text: #ffffff;
 
   --shadow-panel: 0 1px 3px rgba(0, 0, 0, 0.03);
   --shadow-elevated: 0 12px 40px rgba(0, 0, 0, 0.1);
