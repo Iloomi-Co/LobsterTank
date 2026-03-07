@@ -102,16 +102,32 @@
   color: var(--text-muted);
 }
 
-/* ── Agent Chip ───────────────────────────── */
+/* ── Model Chip ──────────────────────────── */
 
-.agentChip {
+.modelChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   font-size: var(--font-size-xs);
-  color: var(--text-muted);
+  color: var(--text-secondary);
   background: var(--bg-tertiary);
-  padding: 4px 12px;
+  padding: 5px 12px;
   border-radius: var(--radius-sm);
-  white-space: nowrap;
   align-self: flex-start;
+}
+
+.modelDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.modelFree {
+  font-size: 10px;
+  font-weight: var(--font-weight-bold);
+  color: var(--green);
+  letter-spacing: 0.04em;
 }
 
 /* ── Card Actions ─────────────────────────── */
@@ -201,6 +217,20 @@
 .runBtn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* ── Run Result Toast ─────────────────────── */
+
+.runResultOk {
+  font-size: var(--font-size-xs);
+  color: var(--green);
+  margin-left: auto;
+}
+
+.runResultFail {
+  font-size: var(--font-size-xs);
+  color: var(--red);
+  margin-left: auto;
 }
 
 /* ── Path Line ────────────────────────────── */

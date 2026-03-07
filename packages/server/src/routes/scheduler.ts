@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { join, basename } from "path";
 import { homedir } from "os";
-import { writeFile, unlink, stat } from "fs/promises";
+import { readFile, writeFile, unlink, stat } from "fs/promises";
 import { tmpdir } from "os";
 import type {
   ApiResponse,
@@ -20,6 +20,7 @@ import { rewritePrompt } from "../lib/prompt-rewriter.js";
 import { ensureGitRepo, snapshot, revertLast } from "../lib/git.js";
 import {
   OC_HOME,
+  OC_CONFIG,
   OC_LOGS_DIR,
   BIN_DIR,
   DASHBOARD_STATE_DIR,
@@ -327,6 +328,65 @@ function buildCostEstimate(
   };
 }
 
+// --- Agent → Model resolution ---
+
+interface AgentModelMap {
+  [agentId: string]: { model: string; provider: string; isLocal: boolean };
+}
+
+let agentModelCache: AgentModelMap | null = null;
+let agentModelCacheTime = 0;
+const AGENT_MODEL_CACHE_TTL = 30_000;
+
+async function loadAgentModelMap(): Promise<AgentModelMap> {
+  const now = Date.now();
+  if (agentModelCache && now - agentModelCacheTime < AGENT_MODEL_CACHE_TTL) {
+    return agentModelCache;
+  }
+  const map: AgentModelMap = {};
+  try {
+    const raw = await readFile(OC_CONFIG, "utf-8");
+    const config = JSON.parse(raw);
+    const agents = config?.agents?.list ?? [];
+    for (const agent of agents) {
+      const primary = agent?.model?.primary;
+      if (!primary || !agent.id) continue;
+      const [provider, ...rest] = primary.split("/");
+      const model = rest.join("/") || provider;
+      map[agent.id] = {
+        model,
+        provider,
+        isLocal: provider === "ollama",
+      };
+    }
+  } catch {}
+  agentModelCache = map;
+  agentModelCacheTime = now;
+  return map;
+}
+
+async function resolveModelForScript(
+  script: string,
+  scriptPath: string,
+  regAgent?: string,
+): Promise<{ model: string; provider: string; isLocal: boolean } | null> {
+  const modelMap = await loadAgentModelMap();
+
+  // 1. Try registered automation agent
+  if (regAgent && modelMap[regAgent]) return modelMap[regAgent];
+
+  // 2. Parse --agent flag from script content
+  try {
+    const content = await readFile(scriptPath, "utf-8");
+    const m = content.match(/--agent\s+["']?([a-zA-Z0-9_-]+)/);
+    if (m && modelMap[m[1]]) return modelMap[m[1]];
+    const m2 = content.match(/AGENT_ID=["']([a-zA-Z0-9_-]+)["']/);
+    if (m2 && modelMap[m2[1]]) return modelMap[m2[1]];
+  } catch {}
+
+  return null;
+}
+
 // --- Helpers ---
 
 function extractScript(command: string): string {
@@ -506,6 +566,13 @@ async function parseCrontab() {
       }
     }
 
+    // Resolve model for agent tasks
+    let modelInfo: { model: string; provider: string; isLocal: boolean } | null = null;
+    if (category === "agent") {
+      modelInfo = await resolveModelForScript(script, scriptPath, reg?.agent);
+      console.log(`[model-resolve] ${script} -> ${JSON.stringify(modelInfo)}`);
+    }
+
     const entry: SchedulerCrontabEntry = {
       lineIndex: i,
       schedule,
@@ -520,6 +587,7 @@ async function parseCrontab() {
       runHistory,
       costEstimate: buildCostEstimate(script, cronCosts, runsThisWeek),
       hasPrompt,
+      modelInfo,
       helplessness: helplessness?.detected ? {
         detected: true,
         agentName: helplessness.agentName,

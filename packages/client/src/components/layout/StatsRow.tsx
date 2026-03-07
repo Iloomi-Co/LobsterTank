@@ -37,10 +37,10 @@ export function StatsRow() {
       setStartedAt(health.data?.gateway?.startedAt);
       setAgentCount(health.data?.agents?.length ?? 0);
 
-      if (spend.data?.daily?.length) {
+      if (byModel.data?.daily?.length) {
         const todayStr = new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD
-        const todayEntry = spend.data.daily.find((d: any) => d.date === todayStr);
-        const cost = todayEntry?.totalCost ?? 0;
+        const todayEntry = byModel.data.daily.find((d: any) => d.date === todayStr);
+        const cost = todayEntry?.total ?? 0;
         setTodaySpend(`$${Number(cost).toFixed(2)}`);
       }
 

@@ -3,6 +3,7 @@ import { StatusDot } from "../shared/StatusDot.js";
 import { Badge } from "../shared/Badge.js";
 import { HelplessnessWarning } from "./HelplessnessWarning.js";
 import { cronToHuman } from "../../utils/cron.js";
+import { getModelColor } from "../../utils/modelColors.js";
 import styles from "./CrontabSection.module.css";
 
 interface CrontabEntry {
@@ -23,6 +24,11 @@ interface CrontabEntry {
     runsThisWeek: number;
   } | null;
   hasPrompt: boolean;
+  modelInfo?: {
+    model: string;
+    provider: string;
+    isLocal: boolean;
+  } | null;
   registrationMeta?: {
     agent: string;
     description: string;
@@ -110,6 +116,7 @@ function formatCardCost(entry: CrontabEntry): { text: string; className?: string
 function TaskCard({
   entry,
   runningScript,
+  runResult,
   onCardClick,
   onRun,
   onViewLogs,
@@ -117,6 +124,7 @@ function TaskCard({
 }: {
   entry: CrontabEntry;
   runningScript: string | null;
+  runResult: { script: string; ok: boolean; message: string } | null;
   onCardClick: (entry: CrontabEntry) => void;
   onRun: (scriptName: string) => void;
   onViewLogs: (scriptName: string) => void;
@@ -124,6 +132,7 @@ function TaskCard({
 }) {
   const cost = formatCardCost(entry);
   const isRunning = runningScript === entry.script;
+  const cardResult = runResult?.script === entry.script ? runResult : null;
 
   return (
     <div className={styles.taskCard} onClick={() => onCardClick(entry)}>
@@ -163,8 +172,15 @@ function TaskCard({
 
       <RunSparkline history={entry.runHistory} />
 
-      {entry.registrationMeta?.agent && (
-        <span className={styles.agentChip}>&rarr; {entry.registrationMeta.agent}</span>
+      {entry.modelInfo && (
+        <div className={styles.modelChip}>
+          <span
+            className={styles.modelDot}
+            style={{ background: getModelColor(entry.modelInfo.model, entry.modelInfo.isLocal) }}
+          />
+          <span>{entry.modelInfo.model}</span>
+          {entry.modelInfo.isLocal && <span className={styles.modelFree}>FREE</span>}
+        </div>
       )}
 
       <div className={styles.cardActions} onClick={(e) => e.stopPropagation()}>
@@ -188,6 +204,11 @@ function TaskCard({
         >
           {entry.status === "paused" ? "Enable" : "Disable"}
         </button>
+        {cardResult && (
+          <span className={cardResult.ok ? styles.runResultOk : styles.runResultFail}>
+            {cardResult.message}
+          </span>
+        )}
       </div>
     </div>
   );
@@ -195,6 +216,7 @@ function TaskCard({
 
 export function CrontabSection({ entries, pathLine, onToggle, onViewLogs, onViewScript, onRunScript, onForceNewSession, dismissedHelplessness, onDismissHelplessness }: CrontabSectionProps) {
   const [runningScript, setRunningScript] = useState<string | null>(null);
+  const [runResult, setRunResult] = useState<{ script: string; ok: boolean; message: string } | null>(null);
   const agentEntries = entries.filter((e) => e.category === "agent");
   const systemEntries = entries.filter((e) => e.category === "system");
   const agentActive = agentEntries.filter((e) => e.status === "active").length;
@@ -202,10 +224,15 @@ export function CrontabSection({ entries, pathLine, onToggle, onViewLogs, onView
 
   const handleRun = async (scriptName: string) => {
     setRunningScript(scriptName);
+    setRunResult(null);
     try {
       await onRunScript(scriptName);
+      setRunResult({ script: scriptName, ok: true, message: "Completed" });
+    } catch (e: any) {
+      setRunResult({ script: scriptName, ok: false, message: e.message ?? "Failed" });
     } finally {
       setRunningScript(null);
+      setTimeout(() => setRunResult(null), 5000);
     }
   };
 
@@ -224,6 +251,7 @@ export function CrontabSection({ entries, pathLine, onToggle, onViewLogs, onView
             key={entry.lineIndex}
             entry={entry}
             runningScript={runningScript}
+            runResult={runResult}
             onCardClick={onViewScript}
             onRun={handleRun}
             onViewLogs={onViewLogs}
@@ -258,6 +286,7 @@ export function CrontabSection({ entries, pathLine, onToggle, onViewLogs, onView
             key={entry.lineIndex}
             entry={entry}
             runningScript={runningScript}
+            runResult={runResult}
             onCardClick={onViewScript}
             onRun={handleRun}
             onViewLogs={onViewLogs}

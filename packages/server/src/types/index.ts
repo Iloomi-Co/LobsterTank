@@ -199,6 +199,11 @@ export interface SchedulerCrontabEntry {
     runsThisWeek: number;
   } | null;
   hasPrompt: boolean;
+  modelInfo?: {
+    model: string;
+    provider: string;
+    isLocal: boolean;
+  } | null;
   registrationMeta?: {
     agent: string;
     description: string;

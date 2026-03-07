@@ -29,6 +29,9 @@
   --orange: #ff6b35;
   --purple: #a855f7;
 
+  /* ── Always-dark surfaces ───────────────── */
+  --bg-panel-dark: #141416;
+
   /* ── Component surfaces (dark) ───────────── */
   --surface-chip: #27272a;
   --surface-chip-hover: #3f3f46;
@@ -103,6 +106,8 @@
   --blue-dim: rgba(8, 145, 178, 0.06);
   --orange: #c2410c;
   --purple: #7c3aed;
+
+  --bg-panel-dark: #141416;
 
   --bg-screen: #A4ABB6;
   --bg-page: linear-gradient(to bottom right, #E3E5E6, #F9E9B0);

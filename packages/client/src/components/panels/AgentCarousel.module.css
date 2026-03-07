@@ -1,5 +1,6 @@
+/* Always-dark card — does NOT use theme variables for colors */
 .card {
-  background: var(--bg-tertiary);
+  background: var(--bg-panel-dark);
   border-radius: var(--radius-lg);
   padding: 28px;
   display: flex;
@@ -17,26 +18,26 @@
 .title {
   font-size: var(--font-size-lg);
   font-weight: var(--font-weight-normal);
-  color: var(--text-primary);
+  color: #ffffff;
 }
 
 .counter {
   font-size: var(--font-size-2xl);
   font-weight: var(--font-weight-light);
-  color: var(--text-primary);
+  color: #ffffff;
   letter-spacing: -0.03em;
 }
 
 .agentName {
   font-size: var(--font-size-xl);
   font-weight: var(--font-weight-semibold);
-  color: var(--text-primary);
+  color: #ffffff;
   letter-spacing: -0.02em;
 }
 
 .agentId {
   font-size: var(--font-size-xs);
-  color: var(--text-muted);
+  color: rgba(255, 255, 255, 0.45);
   margin-top: 2px;
   margin-bottom: 20px;
 }
@@ -56,14 +57,14 @@
 
 .label {
   font-size: var(--font-size-xs);
-  color: var(--text-muted);
+  color: rgba(255, 255, 255, 0.45);
   min-width: 80px;
   flex-shrink: 0;
 }
 
 .value {
   font-size: var(--font-size-sm);
-  color: var(--text-secondary);
+  color: rgba(255, 255, 255, 0.7);
   word-break: break-word;
 }
 
@@ -73,16 +74,16 @@
   justify-content: space-between;
   margin-top: 24px;
   padding-top: 16px;
-  border-top: 1px solid var(--border-primary);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .navBtn {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: var(--surface-chip);
+  background: rgba(255, 255, 255, 0.08);
   border: none;
-  color: var(--text-secondary);
+  color: rgba(255, 255, 255, 0.6);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -90,8 +91,8 @@
 }
 
 .navBtn:hover {
-  background: var(--surface-chip-hover);
-  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
 }
 
 .dots {
@@ -103,12 +104,12 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--border-primary);
+  background: rgba(255, 255, 255, 0.2);
   transition: all 120ms ease;
 }
 
 .dotActive {
-  background: var(--text-primary);
+  background: #ffffff;
   width: 18px;
   border-radius: 3px;
 }

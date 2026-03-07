@@ -1,5 +1,5 @@
 .card {
-  background: color-mix(in srgb, var(--bg-panel) 50%, transparent);
+  background: var(--bg-panel);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-panel);

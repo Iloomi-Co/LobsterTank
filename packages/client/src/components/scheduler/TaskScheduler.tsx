@@ -27,6 +27,11 @@ interface SchedulerState {
         runsThisWeek: number;
       } | null;
       hasPrompt: boolean;
+      modelInfo?: {
+        model: string;
+        provider: string;
+        isLocal: boolean;
+      } | null;
       registrationMeta?: {
         agent: string;
         description: string;
@@ -104,8 +109,11 @@ export function TaskScheduler() {
   };
 
   const handleRunScript = async (scriptName: string) => {
-    await api.schedulerRunScript(scriptName);
+    const res = await api.schedulerRunScript(scriptName);
     refresh();
+    if (!res.ok) {
+      throw new Error(res.error ?? "Script failed");
+    }
   };
 
   const handleForceNewSession = async (scriptName: string) => {

@@ -228,8 +228,8 @@ export function AuditPanel() {
             <h2 className={styles.sectionHeading}>Audit & Deploy</h2>
             {configRuleCounts && (
               <span className={`${styles.rulesBadge} ${allRulesPass ? styles.rulesBadgeGreen : styles.rulesBadgeRed}`}>
-                <span className={styles.rulesBadgeIcon}>{allRulesPass ? "\u2713" : "\u2717"}</span>
                 {configRuleCounts.ok}/{configRuleCounts.total} Rules
+                <span className={styles.rulesBadgeIcon}>{allRulesPass ? "\u2713" : "\u2717"}</span>
               </span>
             )}
           </div>
