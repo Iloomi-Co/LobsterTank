@@ -28,9 +28,17 @@ interface CrontabHealth {
   fixes: string[];
 }
 
+interface ScriptFixResult {
+  script: string;
+  fixes: string[];
+  ok: boolean;
+  error?: string;
+}
+
 interface AuditData {
   changePlanText: string;
   totalChanges: number;
+  taskWarnings: number;
   configSync: any;
   discoveredTasks: DiscoveredTask[];
   crontab: CrontabHealth;
@@ -38,6 +46,7 @@ interface AuditData {
   issues: any[];
   gitStatus: any;
   applied?: string[];
+  scriptFixResults?: ScriptFixResult[];
 }
 
 const RULE_SHORT_NAMES: Record<string, string> = {
@@ -125,9 +134,11 @@ export function AuditPanel() {
     configSync: true,
     scriptDeployment: true,
     crontabFixes: true,
+    scriptFixes: true,
   });
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
   const [applying, setApplying] = useState(false);
+  const [applyResult, setApplyResult] = useState<{ applied: string[]; scriptFixResults: ScriptFixResult[]; error?: string } | null>(null);
   const [lastRunTime, setLastRunTime] = useState<Date | null>(null);
   const [showLogs, setShowLogs] = useState(false);
 
@@ -164,15 +175,22 @@ export function AuditPanel() {
   const handleApply = useCallback(async () => {
     setConfirmOpen(false);
     setApplying(true);
+    setApplyResult(null);
     try {
       const result = await api.auditApply(applyCategories);
       if (result.ok && result.data) {
         setData(result.data);
         setLastRunTime(new Date());
+        setApplyResult({
+          applied: result.data.applied ?? [],
+          scriptFixResults: result.data.scriptFixResults ?? [],
+        });
       } else {
+        setApplyResult({ applied: [], scriptFixResults: [], error: result.error ?? "Apply failed" });
         setError(result.error ?? "Apply failed");
       }
     } catch (e: any) {
+      setApplyResult({ applied: [], scriptFixResults: [], error: e.message });
       setError(e.message);
     } finally {
       setApplying(false);
@@ -198,6 +216,7 @@ export function AuditPanel() {
   };
 
   const scriptsNeedingDeploy = data?.discoveredTasks?.filter((t) => t.deployStatus === "update" || t.deployStatus === "new").length ?? 0;
+  const totalFixCount = (data?.totalChanges ?? 0) + (data?.taskWarnings ?? 0);
 
   // Compute config sync rule counts
   const configRuleCounts = (() => {
@@ -230,6 +249,12 @@ export function AuditPanel() {
               <span className={`${styles.rulesBadge} ${allRulesPass ? styles.rulesBadgeGreen : styles.rulesBadgeRed}`}>
                 {configRuleCounts.ok}/{configRuleCounts.total} Rules
                 <span className={styles.rulesBadgeIcon}>{allRulesPass ? "\u2713" : "\u2717"}</span>
+              </span>
+            )}
+            {(data?.taskWarnings ?? 0) > 0 && (
+              <span className={`${styles.rulesBadge} ${styles.rulesBadgeRed}`}>
+                {data!.taskWarnings} Warning{data!.taskWarnings !== 1 ? "s" : ""}
+                <span className={styles.rulesBadgeIcon}>{"\u26A0"}</span>
               </span>
             )}
           </div>
@@ -306,7 +331,7 @@ export function AuditPanel() {
                                     {passed ? (
                                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
                                     ) : (
-                                      <span />
+                                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                                     )}
                                   </span>
                                 </div>
@@ -367,7 +392,7 @@ export function AuditPanel() {
                                   ) : c.passed ? (
                                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
                                   ) : (
-                                    <span />
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                                   )}
                                 </span>
                               </div>
@@ -381,7 +406,7 @@ export function AuditPanel() {
                                   {task.deployStatus === "update" ? "Needs Deploy" : task.deployStatus === "new" ? "New Script" : "Not Deployed"}
                                 </span>
                                 <span className={`${styles.ruleStatus} ${styles.ruleStatusFail}`}>
-                                  <span />
+                                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                                 </span>
                               </div>
                             )}
@@ -415,13 +440,13 @@ export function AuditPanel() {
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
                   {copied ? "Copied!" : "Copy to Clipboard"}
                 </button>
-                {data && data.totalChanges > 0 && (
+                {data && totalFixCount > 0 && (
                   <button
                     className={styles.applyBtn}
                     onClick={() => setConfirmOpen(true)}
                     disabled={applying || selectedCount === 0}
                   >
-                    {applying ? "Applying..." : `Apply (${data.totalChanges})`}
+                    {applying ? "Applying..." : `Apply (${totalFixCount})`}
                   </button>
                 )}
                 <button className={styles.modalCloseBtn} onClick={() => setShowLogs(false)}>
@@ -437,14 +462,33 @@ export function AuditPanel() {
                 </div>
               ) : (
                 <div className={styles.content}>
-                  {/* Applied results toast */}
-                  {data.applied && (
-                    <div className={styles.toast}>
-                      Applied: {data.applied.join(", ")}
+                  {/* Apply results */}
+                  {applyResult && !applying && (
+                    <div className={applyResult.error ? styles.rowError : styles.toast}>
+                      {applyResult.error ? (
+                        <>Apply failed: {applyResult.error}</>
+                      ) : (
+                        <div>
+                          {applyResult.applied.map((msg, i) => (
+                            <div key={i} style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.15rem 0" }}>
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4caf50" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                              <span>{msg}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )}
 
-                  {error && <div className={styles.rowError}>{error}</div>}
+                  {/* Applying progress */}
+                  {applying && (
+                    <div className={styles.toast} style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                      <span className={styles.rowSpinner} />
+                      <span>Applying {totalFixCount} fix{totalFixCount !== 1 ? "es" : ""}...</span>
+                    </div>
+                  )}
+
+                  {error && !applyResult && <div className={styles.rowError}>{error}</div>}
 
                   {/* Audit Report */}
                   <div className={styles.planSection}>
@@ -455,7 +499,7 @@ export function AuditPanel() {
                   </div>
 
                   {/* Category toggles */}
-                  {data.totalChanges > 0 && (
+                  {totalFixCount > 0 && (
                     <div className={styles.categories}>
                       <h4 className={styles.sectionTitle}>Apply Categories</h4>
                       <div className={styles.checkboxGroup}>
@@ -495,6 +539,20 @@ export function AuditPanel() {
                             variant="blue"
                           />
                         </label>
+                        {(data.taskWarnings ?? 0) > 0 && (
+                          <label className={styles.checkbox}>
+                            <input
+                              type="checkbox"
+                              checked={applyCategories.scriptFixes}
+                              onChange={() => toggleCategory("scriptFixes")}
+                            />
+                            <span>Script Fixes</span>
+                            <Badge
+                              label={`${data.taskWarnings} warning${data.taskWarnings !== 1 ? "s" : ""}`}
+                              variant="red"
+                            />
+                          </label>
+                        )}
                       </div>
                     </div>
                   )}
@@ -654,7 +712,7 @@ export function AuditPanel() {
       <ConfirmDialog
         open={confirmOpen}
         title="Apply Changes"
-        message={`This will make ${data?.totalChanges ?? 0} change(s) across ${selectedCount} categories. A git snapshot will be created before and after. Proceed?`}
+        message={`This will apply ${totalFixCount} fix${totalFixCount !== 1 ? "es" : ""} across ${selectedCount} categor${selectedCount === 1 ? "y" : "ies"}. A git snapshot will be created before and after. Proceed?`}
         onConfirm={handleApply}
         onCancel={() => setConfirmOpen(false)}
         confirmLabel="Apply"

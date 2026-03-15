@@ -10,6 +10,29 @@
 .left {
   display: flex;
   align-items: center;
+  gap: 12px;
+}
+
+.logoBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: 1px solid var(--text-primary);
+  cursor: pointer;
+  padding: 6px 14px;
+  border-radius: 999px;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.logoBtn:hover {
+  background: var(--bg-hover);
+}
+
+.tridentEmoji {
+  font-size: 22px;
+  line-height: 1;
+  flex-shrink: 0;
 }
 
 .logo {
@@ -17,6 +40,33 @@
   font-weight: var(--font-weight-semibold);
   color: var(--text-primary);
   letter-spacing: -0.03em;
+}
+
+.profileSelect {
+  appearance: none;
+  background: transparent;
+  border: 1px solid var(--border-primary);
+  border-radius: 999px;
+  padding: 6px 28px 6px 14px;
+  font-size: var(--font-size-sm);
+  font-family: var(--font-mono);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), color var(--transition-fast);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+}
+
+.profileSelect:hover {
+  border-color: var(--text-muted);
+  color: var(--text-primary);
+}
+
+.profileSelect:focus {
+  outline: none;
+  border-color: var(--blue);
 }
 
 .nav {

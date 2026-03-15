@@ -7,7 +7,7 @@ import { OC_HOME } from "../config.js";
 
 export const spendByModelRoutes = Router();
 
-const AGENTS_DIR = join(OC_HOME, "agents");
+const getAgentsDir = () => join(OC_HOME, "agents");
 
 // ── Helpers ─────────────────────────────────────────────
 
@@ -50,12 +50,12 @@ spendByModelRoutes.get("/", async (req, res) => {
     const cutoffDate = getLocalDateDaysAgo(days);
 
     // Discover all agent session directories
-    const { entries: agentDirs } = await listDir(AGENTS_DIR);
+    const { entries: agentDirs } = await listDir(getAgentsDir());
 
     // Collect all session JSONL file paths
     const sessionFiles: { agent: string; path: string }[] = [];
     for (const agentName of agentDirs) {
-      const sessDir = join(AGENTS_DIR, agentName, "sessions");
+      const sessDir = join(getAgentsDir(), agentName, "sessions");
       const { entries: files } = await listDir(sessDir).catch(() => ({ entries: [] as string[] }));
       for (const f of files) {
         if (f.endsWith(".jsonl")) {
@@ -255,12 +255,12 @@ spendByModelRoutes.get("/day-detail/:date", async (req, res) => {
     const targetDate = req.params.date; // YYYY-MM-DD
 
     // Discover all agent session directories
-    const { entries: agentDirs } = await listDir(AGENTS_DIR);
+    const { entries: agentDirs } = await listDir(getAgentsDir());
 
     // Collect all session JSONL file paths with sessionId extracted from filename
     const sessionFiles: { agent: string; sessionId: string; path: string }[] = [];
     for (const agentName of agentDirs) {
-      const sessDir = join(AGENTS_DIR, agentName, "sessions");
+      const sessDir = join(getAgentsDir(), agentName, "sessions");
       const { entries: files } = await listDir(sessDir).catch(() => ({ entries: [] as string[] }));
       for (const f of files) {
         if (f.endsWith(".jsonl")) {

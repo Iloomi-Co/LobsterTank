@@ -47,7 +47,7 @@ const SYSTEM_SCRIPTS = new Set([
   "daily-spend-check.sh",
   "ollama",
 ]);
-const ROGUE_BREADCRUMB = join(OC_HOME, "ROGUE_SERVICE_BLOCKED.md");
+const getRogueBreadcrumb = () => join(OC_HOME, "ROGUE_SERVICE_BLOCKED.md");
 const GATEWAY_LABEL = "ai.openclaw.gateway";
 
 // --- Helplessness detection cache (5-min TTL) ---
@@ -183,6 +183,7 @@ async function parseAuditHistory(): Promise<{ timestamp: string; status: RunStat
 async function buildRunHistory(
   script: string,
   regLogPattern?: string | null,
+  command?: string,
 ): Promise<{ timestamp: string; status: RunStatus }[]> {
   if (SKIP_HISTORY_SCRIPTS.has(script)) return [];
 
@@ -218,12 +219,29 @@ async function buildRunHistory(
     return [{ timestamp: ts, status: classifyLogBlock(content) }];
   }
 
+  // 5. Auto-derive from crontab command redirect (no manual registration needed)
+  if (command) {
+    const template = extractLogRedirect(command);
+    if (template) {
+      const fn = makeDateLogFn(template);
+      if (fn) return scanDateBasedLogs(fn);
+      // Static log file
+      const logPath = join(OC_LOGS_DIR, template);
+      const { data: content } = await readTextFile(logPath);
+      if (content?.trim()) {
+        const tsMatch = content.match(/(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?(?:[+-]\d{2}:\d{2})?)/g);
+        const ts = tsMatch ? tsMatch[tsMatch.length - 1] : new Date().toISOString();
+        return [{ timestamp: ts, status: classifyLogBlock(content) }];
+      }
+    }
+  }
+
   return [];
 }
 
 // --- Cost estimation helpers ---
 
-const CRON_RUNS_DIR = join(OC_HOME, "cron/runs");
+const getCronRunsDir = () => join(OC_HOME, "cron/runs");
 
 // Per-million-token pricing
 const MODEL_PRICING: Record<string, { input: number; output: number }> = {
@@ -261,10 +279,10 @@ async function parseCronRunCosts(): Promise<Map<string, ScriptCostData>> {
   const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
 
   try {
-    const { entries: files } = await listDir(CRON_RUNS_DIR);
+    const { entries: files } = await listDir(getCronRunsDir());
     for (const file of files) {
       if (!file.endsWith(".jsonl")) continue;
-      const fullPath = join(CRON_RUNS_DIR, file);
+      const fullPath = join(getCronRunsDir(), file);
       const { data: content } = await readTextFile(fullPath);
       if (!content) continue;
 
@@ -395,12 +413,68 @@ function extractScript(command: string): string {
   return match ? match[0] : basename(command.split(/\s+/)[0]);
 }
 
-async function resolveLogFile(script: string): Promise<string | null> {
+/**
+ * Extract a log redirect path from a crontab command line.
+ * Handles patterns like:
+ *   >> ~/.openclaw/logs/bridge-ingest-$(date +\%Y-\%m-\%d).log 2>&1
+ *   >> ~/.openclaw/logs/cron-$(date +%Y-%m-%d).log 2>&1
+ * Returns the filename portion (inside OC_LOGS_DIR) with date format
+ * markers replaced: %Y → YYYY, %m → MM, %d → DD
+ *
+ * Note: uses .+? not \S+ because $(date +\%Y-...) contains a space.
+ */
+function extractLogRedirect(command: string): string | null {
+  // Match >> path — use .+? to handle spaces inside $(date +...)
+  const redir = command.match(/>>\s*(.+?\.log)\b/);
+  if (!redir) return null;
+
+  const logName = basename(redir[1]);
+
+  // Check if it has a date substitution: $(date +%Y-%m-%d) or $(date +\%Y-\%m-\%d)
+  if (!logName.includes("date") && !logName.includes("%")) return logName;
+
+  // Convert $(date +\%Y-\%m-\%d) or $(date +%Y-%m-%d) patterns to YYYY-MM-DD template
+  const templateName = logName
+    .replace(/\$\(date\s+\+\\?%Y-\\?%m-\\?%d\)/, "YYYY-MM-DD")  // full date
+    .replace(/\\?%Y/g, "YYYY")
+    .replace(/\\?%m/g, "MM")
+    .replace(/\\?%d/g, "DD");
+
+  return templateName;
+}
+
+/**
+ * Build a date-based log resolver from a template name (e.g. "bridge-ingest-YYYY-MM-DD.log").
+ * Returns null if the template has no date placeholders.
+ */
+function makeDateLogFn(template: string): ((d: Date) => string) | null {
+  if (!template.includes("YYYY")) return null;
+  return (d: Date) =>
+    template
+      .replace("YYYY", String(d.getFullYear()))
+      .replace("MM", String(d.getMonth() + 1).padStart(2, "0"))
+      .replace("DD", String(d.getDate()).padStart(2, "0"));
+}
+
+async function resolveLogFile(script: string, command?: string): Promise<string | null> {
+  // 1. Check script-metadata.json first
   const logMap = await getScriptLogMap();
   const mapping = logMap[script];
-  if (!mapping) return null;
-  if (typeof mapping === "function") return mapping(new Date());
-  return mapping;
+  if (mapping) {
+    if (typeof mapping === "function") return mapping(new Date());
+    return mapping;
+  }
+
+  // 2. Auto-derive from crontab command redirect
+  if (command) {
+    const template = extractLogRedirect(command);
+    if (template) {
+      const fn = makeDateLogFn(template);
+      return fn ? fn(new Date()) : template;
+    }
+  }
+
+  return null;
 }
 
 async function descriptionForEntry(script: string, command: string): Promise<string> {
@@ -484,10 +558,22 @@ schedulerRoutes.get("/", async (_req, res) => {
   }
 });
 
+/** Check if a script belongs to the current profile's OC_HOME */
+function scriptBelongsToProfile(content: string, ocHomeBase: string): boolean {
+  if (ocHomeBase === ".openclaw") {
+    // Default profile: match .openclaw/ or .openclaw" but not .openclaw-
+    return /\.openclaw(?!-)[\/"'\s]/.test(content);
+  }
+  return content.includes(ocHomeBase);
+}
+
 async function parseCrontab() {
   const result = await safeExec("crontab", ["-l"]);
   const raw = result.exitCode === 0 ? result.stdout : "";
   const lines = raw.split("\n");
+
+  // Profile filtering: determine which directory pattern to match
+  const ocHomeBase = OC_HOME.slice(homedir().length + 1); // e.g. ".openclaw" or ".openclaw-iloomi"
 
   // Build registration lookup map
   const automations = await getRegisteredAutomations();
@@ -525,9 +611,18 @@ async function parseCrontab() {
     const schedule = match[1];
     const command = match[2];
     const script = extractScript(command);
-    const logFile = await resolveLogFile(script);
+    const logFile = await resolveLogFile(script, command);
     const scriptPath = join(BIN_DIR, script);
     const scriptExists = script.endsWith(".sh") ? await fileStat(scriptPath) : true;
+
+    // Profile filtering: skip scripts that don't belong to this profile
+    if (script.endsWith(".sh") && scriptExists) {
+      const { data: sc } = await readTextFile(scriptPath);
+      if (sc && !scriptBelongsToProfile(sc, ocHomeBase)) continue;
+    } else if (!script.endsWith(".sh")) {
+      // Non-script entries (e.g. ollama): only show for default profile
+      if (ocHomeBase !== ".openclaw") continue;
+    }
 
     let status: "active" | "paused" | "missing";
     if (isPaused) {
@@ -541,7 +636,7 @@ async function parseCrontab() {
     const lastRun = await parseLastRun(logFile);
     const category = SYSTEM_SCRIPTS.has(script) ? "system" as const : "agent" as const;
     const reg = regMap.get(script);
-    const runHistory = await buildRunHistory(script, reg?.logPattern ?? null);
+    const runHistory = await buildRunHistory(script, reg?.logPattern ?? null, command);
 
     // Count runs this week from runHistory
     const weekAgoStr = fmtDate(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
@@ -618,16 +713,36 @@ async function parseOcCrons(): Promise<{ entries: SchedulerOcCron[]; isEmpty: bo
     return { entries: [], isEmpty: true };
   }
 
-  const lines = result.stdout.trim().split("\n").filter(Boolean);
-  // Skip header line if present
-  const dataLines = lines.length > 0 && lines[0].toLowerCase().includes("id") ? lines.slice(1) : lines;
+  const raw = result.stdout;
 
-  if (dataLines.length === 0 || (dataLines.length === 1 && dataLines[0].toLowerCase().includes("no "))) {
+  // Strip ANSI escape codes and box-drawing / decorative characters
+  const cleaned = raw
+    .replace(/\x1b\[[0-9;]*m/g, "")                          // ANSI color codes
+    .replace(/[│├┤┌┐└┘╮╯╭╰─◇◆○●■□▶▸►▪▫]/g, "")             // box-drawing chars
+    .replace(/\r/g, "");
+
+  const lines = cleaned.split("\n")
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0)
+    // Skip noise: error traces, config warnings, plugin messages
+    .filter((l) => !l.startsWith("at ") && !l.startsWith("Config warnings") && !l.startsWith("Failed to read") && !l.startsWith("- plugins.") && !l.includes("config) but config is present"));
+
+  // Check for "no cron jobs" anywhere
+  if (lines.length === 0 || lines.some((l) => /no\s+cron\s+jobs/i.test(l))) {
+    return { entries: [], isEmpty: true };
+  }
+
+  // Skip header line if present (contains "id" or "schedule" column names)
+  const dataLines = lines[0].toLowerCase().includes("id") || lines[0].toLowerCase().includes("schedule")
+    ? lines.slice(1)
+    : lines;
+
+  if (dataLines.length === 0) {
     return { entries: [], isEmpty: true };
   }
 
   const entries: SchedulerOcCron[] = dataLines.map((line, idx) => {
-    const parts = line.trim().split(/\s+/);
+    const parts = line.split(/\s+/);
     const id = parts[0] ?? String(idx);
     const schedule = parts.slice(1, 6).join(" ");
     const command = parts.slice(6).join(" ");
@@ -641,7 +756,7 @@ async function parseLaunchd(): Promise<{
   entries: SchedulerLaunchdEntry[];
   breadcrumbExists: boolean;
 }> {
-  const breadcrumbExists = !!(await fileStat(ROGUE_BREADCRUMB));
+  const breadcrumbExists = !!(await fileStat(getRogueBreadcrumb()));
 
   const result = await safeExec("launchctl", ["list"]);
   const lines = result.stdout.split("\n").slice(1).filter(Boolean);
@@ -903,8 +1018,8 @@ schedulerRoutes.post("/launchd/remove", async (req, res) => {
     await unlink(plistPath).catch(() => {});
 
     // Create breadcrumb
-    const breadcrumbContent = `# Rogue Service Blocked\n\nService \`${label}\` was removed by LobsterTank on ${new Date().toISOString()}\n`;
-    await writeFile(ROGUE_BREADCRUMB, breadcrumbContent);
+    const breadcrumbContent = `# Rogue Service Blocked\n\nService \`${label}\` was removed by Poseidon on ${new Date().toISOString()}\n`;
+    await writeFile(getRogueBreadcrumb(), breadcrumbContent);
 
     res.json({
       ok: result.exitCode === 0,
@@ -1003,7 +1118,7 @@ schedulerRoutes.post("/force-new-session/:scriptName", async (req, res) => {
 
     // Step 1: Snapshot before changes
     await ensureGitRepo(BIN_DIR);
-    await snapshot(BIN_DIR, `LobsterTank: pre-session-bump snapshot for ${scriptName}`);
+    await snapshot(BIN_DIR, `Poseidon: pre-session-bump snapshot for ${scriptName}`);
 
     // Step 2: Bump session-id in script
     const updated = content.replace(
@@ -1012,7 +1127,7 @@ schedulerRoutes.post("/force-new-session/:scriptName", async (req, res) => {
     );
     await writeFile(scriptPath, updated);
 
-    const commitSnap = await snapshot(BIN_DIR, `LobsterTank: bump session ${oldPattern} -> ${newPattern} in ${scriptName}`);
+    const commitSnap = await snapshot(BIN_DIR, `Poseidon: bump session ${oldPattern} -> ${newPattern} in ${scriptName}`);
 
     // Step 3: Clean agent memory of stale limitation beliefs
     const agentName = extractAgentName(content);
@@ -1175,7 +1290,7 @@ schedulerRoutes.post("/script/:scriptName/apply-rewrite", async (req, res) => {
 
   try {
     await ensureGitRepo(BIN_DIR);
-    const snap = await snapshot(BIN_DIR, `LobsterTank: pre-rewrite snapshot for ${scriptName}`);
+    const snap = await snapshot(BIN_DIR, `Poseidon: pre-rewrite snapshot for ${scriptName}`);
 
     const scriptPath = join(BIN_DIR, scriptName);
     const { data: content } = await readTextFile(scriptPath);
@@ -1189,7 +1304,7 @@ schedulerRoutes.post("/script/:scriptName/apply-rewrite", async (req, res) => {
     await writeFile(scriptPath, modified);
 
     const desc = changeDescription ?? "prompt edit";
-    const commitSnap = await snapshot(BIN_DIR, `LobsterTank: ${desc} in ${scriptName}`);
+    const commitSnap = await snapshot(BIN_DIR, `Poseidon: ${desc} in ${scriptName}`);
 
     if (feedbackId) {
       await markFeedbackApplied(scriptName, feedbackId, commitSnap?.hash ?? null, desc);

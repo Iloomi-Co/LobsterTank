@@ -80,11 +80,15 @@
 }
 
 .legendLabel {
-  color: var(--text-secondary);
+  color: #bbbbbb;
   flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+:global([data-theme="light"]) .legendLabel {
+  color: #333333;
 }
 
 .legendValue {
@@ -95,8 +99,12 @@
 }
 
 .legendPct {
-  color: var(--text-muted);
+  color: #bbbbbb;
   min-width: 44px;
   text-align: right;
   font-size: var(--font-size-xs);
+}
+
+:global([data-theme="light"]) .legendPct {
+  color: #333333;
 }

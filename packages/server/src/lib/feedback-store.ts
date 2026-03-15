@@ -4,7 +4,7 @@ import { createHash } from "crypto";
 import { DASHBOARD_STATE_DIR } from "../config.js";
 import { ensureDir } from "./file-reader.js";
 
-const FEEDBACK_DIR = join(DASHBOARD_STATE_DIR, "feedback");
+const getFeedbackDir = () => join(DASHBOARD_STATE_DIR, "feedback");
 
 export interface FeedbackEntry {
   id: string;
@@ -21,7 +21,7 @@ export interface FeedbackEntry {
 }
 
 function feedbackPath(scriptName: string): string {
-  return join(FEEDBACK_DIR, `${scriptName}.json`);
+  return join(getFeedbackDir(), `${scriptName}.json`);
 }
 
 export function hashPrompt(content: string): string {
@@ -38,7 +38,7 @@ async function readFeedbackFile(scriptName: string): Promise<FeedbackEntry[]> {
 }
 
 async function writeFeedbackFile(scriptName: string, entries: FeedbackEntry[]): Promise<void> {
-  await ensureDir(FEEDBACK_DIR);
+  await ensureDir(getFeedbackDir());
   await writeFile(feedbackPath(scriptName), JSON.stringify(entries, null, 2));
 }
 

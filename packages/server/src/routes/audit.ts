@@ -14,8 +14,25 @@ import {
 import { ensureGitRepo, isGitRepo, isClean, snapshot, getLastCommit } from "../lib/git.js";
 import { checkWrapperConvention } from "../lib/wrapper-convention-checker.js";
 import type { WrapperConventionReport } from "../lib/wrapper-convention-checker.js";
+import { patchScript } from "../lib/script-patcher.js";
 
 export const auditRoutes = Router();
+
+// ─── Profile filtering for scripts ──────────────────────────
+/**
+ * Check if a script belongs to a given profile by examining its content.
+ * For default profile (".openclaw"), matches ".openclaw/" but NOT ".openclaw-".
+ * For named profiles (".openclaw-foo"), matches ".openclaw-foo".
+ */
+function scriptBelongsToProfile(content: string, ocHomeBase: string): boolean {
+  if (ocHomeBase === ".openclaw") {
+    // Default profile: match .openclaw/ or .openclaw" but not .openclaw-
+    // Use a regex that matches .openclaw followed by / or " or whitespace, but not -
+    return /\.openclaw(?!-)[\/"'\s]/.test(content);
+  }
+  // Named profile: just check for the full directory name
+  return content.includes(ocHomeBase);
+}
 
 // ─── Types ──────────────────────────────────────────────────
 
@@ -74,11 +91,16 @@ async function discoverTasks(): Promise<{
   const deployScripts = deployEntries.filter((f) => f.endsWith(".sh"));
 
   // 4. For each script in ~/bin/ — read content, check convention, compare hash
+  //    Filter: only include scripts that reference the current profile's OC_HOME
+  const ocHomeBase = OC_HOME.slice(homedir().length + 1); // e.g. ".openclaw" or ".openclaw-iloomi"
   const tasks: DiscoveredTask[] = [];
   for (const scriptName of binScripts) {
     const binPath = join(BIN_DIR, scriptName);
     const { data: content } = await readTextFile(binPath);
     if (!content) continue;
+
+    // Profile filtering: check if script references this profile's directory
+    if (!scriptBelongsToProfile(content, ocHomeBase)) continue;
 
     const report = checkWrapperConvention(scriptName, content, crontabRaw);
 
@@ -202,13 +224,13 @@ function generateAuditReport(
   deployOnlyScripts: string[],
   issues: any[],
   gitStatus: any,
-): { text: string; totalChanges: number } {
+): { text: string; totalChanges: number; taskWarnings: number } {
   const lines: string[] = [];
   let totalChanges = 0;
 
   const ts = new Date().toISOString();
   lines.push("═══════════════════════════════════════════════════");
-  lines.push("  LobsterTank Audit Report");
+  lines.push("  Poseidon Audit Report");
   lines.push(`  Generated: ${ts}`);
   lines.push(`  Target: ${target}`);
   lines.push("═══════════════════════════════════════════════════");
@@ -239,6 +261,7 @@ function generateAuditReport(
   lines.push("");
   lines.push("── DISCOVERED TASKS (~/bin/ + crontab) ─────────────");
   lines.push("");
+  let taskWarnings = 0;
   for (const task of discoveredTasks) {
     const r = task.report;
     const allPassed = r.passCount === r.totalApplicable;
@@ -256,6 +279,12 @@ function generateAuditReport(
       return `${c.label}: ${indicator}`;
     }).join("  ");
     lines.push(`   ${indicators}`);
+
+    // Count failing checks as warnings
+    const failCount = applicable.filter((c) => !c.exempt && !c.passed).length;
+    if (failCount > 0) {
+      taskWarnings += failCount;
+    }
 
     if (task.deployStatus === "update") {
       lines.push(`   Deploy: ⚠️ deployed copy differs from source`);
@@ -322,32 +351,75 @@ function generateAuditReport(
 
   lines.push("");
   lines.push("═══════════════════════════════════════════════════");
-  lines.push(`  Summary: ${totalChanges} change(s) detected`);
-  lines.push("  Run \"Confirm\" to apply. Git snapshot will be created first.");
+  const parts: string[] = [];
+  if (totalChanges > 0) parts.push(`${totalChanges} change(s)`);
+  if (taskWarnings > 0) parts.push(`${taskWarnings} task warning(s)`);
+  lines.push(`  Summary: ${parts.length > 0 ? parts.join(", ") : "No issues"} detected`);
+  if (totalChanges > 0 || taskWarnings > 0) {
+    lines.push("  Run \"Confirm\" to apply. Git snapshot will be created first.");
+  }
   lines.push("═══════════════════════════════════════════════════");
 
-  return { text: lines.join("\n"), totalChanges };
+  return { text: lines.join("\n"), totalChanges, taskWarnings };
+}
+
+// ─── Filter configSync results to current profile ───────────
+function filterConfigSyncByProfile(configSync: any): any {
+  if (!configSync?.results) return configSync;
+  // Filter results to only include agents whose file paths belong to OC_HOME
+  const filtered = configSync.results.filter((r: any) => {
+    if (!r.file) return false;
+    const expanded = r.file.replace(/^~/, homedir());
+    return expanded.startsWith(OC_HOME);
+  });
+  // Recompute summary from filtered results
+  let totalChecks = 0, ok = 0, missing = 0, outdated = 0;
+  for (const r of filtered) {
+    const okCount = r.ok?.length ?? 0;
+    const missingCount = r.missing?.length ?? 0;
+    const outdatedCount = r.outdated?.length ?? 0;
+    totalChecks += okCount + missingCount + outdatedCount;
+    ok += okCount;
+    missing += missingCount;
+    outdated += outdatedCount;
+  }
+  return {
+    ...configSync,
+    results: filtered,
+    summary: { totalChecks, ok, missing, outdated },
+    aligned: missing === 0 && outdated === 0,
+  };
+}
+
+/** Build a display-friendly target label for the current profile */
+function profileTargetLabel(): string {
+  const home = homedir();
+  if (OC_HOME === join(home, ".openclaw")) return "~/.openclaw";
+  return "~/" + OC_HOME.slice(home.length + 1);
 }
 
 // ─── GET /api/audit — Master audit endpoint ────────────────
 auditRoutes.get("/", async (_req, res) => {
   try {
-    const [configSync, discovered, issues, gitStatus] = await Promise.all([
+    const target = profileTargetLabel();
+    const [rawConfigSync, discovered, issues, gitStatus] = await Promise.all([
       checkConfigSync(),
       discoverTasks(),
       checkIssues(),
       checkGitStatus(OC_HOME),
     ]);
 
-    const { text: changePlanText, totalChanges } = generateAuditReport(
-      "~/.openclaw", configSync, discovered.tasks, discovered.crontab, discovered.deployOnlyScripts, issues, gitStatus
+    const configSync = filterConfigSyncByProfile(rawConfigSync);
+
+    const { text: changePlanText, totalChanges, taskWarnings } = generateAuditReport(
+      target, configSync, discovered.tasks, discovered.crontab, discovered.deployOnlyScripts, issues, gitStatus
     );
 
     const response: ApiResponse<any> = {
       ok: true,
       data: {
         timestamp: new Date().toISOString(),
-        target: "~/.openclaw",
+        target,
         configSync,
         discoveredTasks: discovered.tasks,
         crontab: discovered.crontab,
@@ -356,7 +428,8 @@ auditRoutes.get("/", async (_req, res) => {
         gitStatus,
         changePlanText,
         totalChanges,
-        categories: ["configSync", "scriptDeployment", "crontabFixes"],
+        taskWarnings,
+        categories: ["configSync", "scriptDeployment", "crontabFixes", "scriptFixes"],
       },
       timestamp: new Date().toISOString(),
     };
@@ -377,7 +450,7 @@ auditRoutes.post("/apply", async (req, res) => {
   try {
     // Ensure git repo and take pre-apply snapshot
     await ensureGitRepo(OC_HOME);
-    await snapshot(OC_HOME, `LobsterTank: pre-apply snapshot ${new Date().toISOString()}`);
+    await snapshot(OC_HOME, `Poseidon: pre-apply snapshot ${new Date().toISOString()}`);
     await logAction("AUDIT_APPLY", `Categories: ${Object.entries(apply).filter(([,v]) => v).map(([k]) => k).join(", ")}`);
 
     const results: string[] = [];
@@ -450,6 +523,46 @@ auditRoutes.post("/apply", async (req, res) => {
       }
     }
 
+    // Apply script fixes (task warnings)
+    const scriptFixResults: { script: string; fixes: string[]; ok: boolean; error?: string }[] = [];
+    if (apply.scriptFixes) {
+      const { writeFile } = await import("fs/promises");
+      const cronResult = await safeExec("crontab", ["-l"]);
+      const crontabRaw = cronResult.exitCode === 0 ? cronResult.stdout : "";
+      const { entries: binFiles } = await listDir(BIN_DIR);
+
+      for (const file of binFiles) {
+        if (!file.endsWith(".sh")) continue;
+        const scriptPath = join(BIN_DIR, file);
+        const scriptContent = await readFile(scriptPath, "utf-8");
+        const report = checkWrapperConvention(file, scriptContent, crontabRaw);
+
+        const failingChecks = report.checks.filter(
+          (c) => !c.passed && !c.exempt && (!c.agentOnly || report.classification === "agent-wrapper"),
+        );
+
+        if (failingChecks.length === 0) continue;
+
+        try {
+          const patch = patchScript(file, scriptContent, report.checks, report.classification);
+          if (patch.patched) {
+            await writeFile(scriptPath, patch.content);
+            await chmod(scriptPath, 0o755);
+            scriptFixResults.push({ script: file, fixes: patch.fixes, ok: true });
+            results.push(`Script fix (${file}): ${patch.fixes.join(", ")}`);
+            await logAction("SCRIPT_FIX", `${file}: ${patch.fixes.join(", ")}`);
+          }
+        } catch (e: any) {
+          scriptFixResults.push({ script: file, fixes: [], ok: false, error: e.message });
+          results.push(`Script fix (${file}): FAILED — ${e.message}`);
+        }
+      }
+
+      if (scriptFixResults.length === 0) {
+        results.push("Script fixes: no scripts need fixing");
+      }
+    }
+
     // Auto-restart gateway if config sync was applied
     let gatewayRestart: { oldPid: number | null; newPid: number | null } | null = null;
     if (apply.configSync) {
@@ -473,27 +586,30 @@ auditRoutes.post("/apply", async (req, res) => {
     }
 
     // Post-apply git snapshot
-    await snapshot(OC_HOME, `LobsterTank: applied ${Object.entries(apply).filter(([,v]) => v).map(([k]) => k).join(", ")}`);
+    await snapshot(OC_HOME, `Poseidon: applied ${Object.entries(apply).filter(([,v]) => v).map(([k]) => k).join(", ")}`);
 
     // Re-run audit to get updated state
-    const [configSync, discovered, issues, gitStatus] = await Promise.all([
+    const [rawConfigSync2, discovered, issues, gitStatus] = await Promise.all([
       checkConfigSync(),
       discoverTasks(),
       checkIssues(),
       checkGitStatus(OC_HOME),
     ]);
 
-    const { text: changePlanText, totalChanges } = generateAuditReport(
-      "~/.openclaw", configSync, discovered.tasks, discovered.crontab, discovered.deployOnlyScripts, issues, gitStatus
+    const configSync = filterConfigSyncByProfile(rawConfigSync2);
+
+    const { text: changePlanText, totalChanges, taskWarnings } = generateAuditReport(
+      profileTargetLabel(), configSync, discovered.tasks, discovered.crontab, discovered.deployOnlyScripts, issues, gitStatus
     );
 
     res.json({
       ok: true,
       data: {
         applied: results,
+        scriptFixResults,
         gatewayRestart,
         timestamp: new Date().toISOString(),
-        target: "~/.openclaw",
+        target: profileTargetLabel(),
         configSync,
         discoveredTasks: discovered.tasks,
         crontab: discovered.crontab,
@@ -502,7 +618,8 @@ auditRoutes.post("/apply", async (req, res) => {
         gitStatus,
         changePlanText,
         totalChanges,
-        categories: ["configSync", "scriptDeployment", "crontabFixes"],
+        taskWarnings,
+        categories: ["configSync", "scriptDeployment", "crontabFixes", "scriptFixes"],
       },
       timestamp: new Date().toISOString(),
     });

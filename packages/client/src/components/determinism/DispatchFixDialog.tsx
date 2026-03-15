@@ -6,6 +6,7 @@ interface Finding {
   id: string;
   category: string;
   severity: string;
+  workspace: string | null;
   file: string | null;
   line: number | null;
   excerpt: string;

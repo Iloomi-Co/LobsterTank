@@ -20,6 +20,7 @@ export interface Finding {
   id: string;
   category: Category;
   severity: Severity;
+  workspace: string | null;
   file: string | null;
   line: number | null;
   excerpt: string;
@@ -82,7 +83,7 @@ async function discoverWorkspaces(): Promise<{ name: string; path: string }[]> {
     const fullPath = join(OC_HOME, entry);
     const stat = await fileStat(fullPath);
     if (stat?.isDirectory()) {
-      const name = entry === "workspace" ? "chief" : entry.replace("workspace-", "");
+      const name = entry === "workspace" ? "main" : entry.replace("workspace-", "");
       workspaces.push({ name, path: fullPath });
     }
   }
@@ -123,7 +124,7 @@ async function getCrontabLines(): Promise<string[]> {
 function scanScheduleLanguage(
   file: { path: string; lines: string[] },
   crontabRaw: string,
-  wsName: string,
+  wsName: string | null,
 ): Finding[] {
   const findings: Finding[] = [];
   const displayPath = file.path.replace(homedir(), "~");
@@ -174,6 +175,7 @@ function scanScheduleLanguage(
       id: "", // assigned later
       category: "schedule-without-crontab",
       severity,
+      workspace: wsName,
       file: displayPath,
       line: i + 1,
       excerpt: line.trim().slice(0, 200),
@@ -196,6 +198,7 @@ function scanScheduleLanguage(
 
 function scanActionImperatives(
   file: { path: string; lines: string[] },
+  wsName: string | null,
 ): Finding[] {
   const findings: Finding[] = [];
   const displayPath = file.path.replace(homedir(), "~");
@@ -230,6 +233,7 @@ function scanActionImperatives(
       id: "",
       category: "action-imperative",
       severity,
+      workspace: wsName,
       file: displayPath,
       line: i + 1,
       excerpt: line.trim().slice(0, 200),
@@ -325,6 +329,7 @@ async function scanMissingSafeguards(
       id: "",
       category: "missing-safeguard",
       severity: hasCritical ? "high" : "medium",
+      workspace: ws.name,
       file: agentsPath.replace(homedir(), "~"),
       line: null,
       excerpt: `Missing rule blocks: ${missingRules.join(", ")}`,
@@ -387,6 +392,7 @@ function scanLlmSpawningCrons(crontabLines: string[]): Finding[] {
       id: "",
       category: "llm-spawning-cron",
       severity,
+      workspace: null,
       file: null,
       line: null,
       excerpt: line.trim().slice(0, 200),
@@ -423,6 +429,7 @@ async function scanRogueScheduling(): Promise<Finding[]> {
         id: "",
         category: "rogue-scheduling",
         severity: "high",
+        workspace: null,
         file: null,
         line: null,
         excerpt: `OC internal crons found: ${dataLines.length} entries`,
@@ -451,6 +458,7 @@ async function scanRogueScheduling(): Promise<Finding[]> {
         id: "",
         category: "rogue-scheduling",
         severity: "high",
+        workspace: null,
         file: null,
         line: null,
         excerpt: `Rogue launchd service: ${label}`,
@@ -494,6 +502,7 @@ function isInsideRuleBlock(lines: string[], lineIndex: number, ruleBlockTitles: 
 function scanConditionalLogic(
   file: { path: string; lines: string[] },
   ruleBlockTitles: string[],
+  wsName: string | null,
 ): Finding[] {
   const findings: Finding[] = [];
   const displayPath = file.path.replace(homedir(), "~");
@@ -558,6 +567,7 @@ function scanConditionalLogic(
       id: "",
       category: "conditional-logic",
       severity,
+      workspace: wsName,
       file: displayPath,
       line: i + 1,
       excerpt: line.trim().slice(0, 200),
@@ -601,8 +611,8 @@ export async function runDeterminismScan(): Promise<ScanResult> {
   // Cat 1 & 2 & 6: Per-file scans
   for (const file of allFiles) {
     allFindings.push(...scanScheduleLanguage(file, crontabRaw, file.wsName));
-    allFindings.push(...scanActionImperatives(file));
-    allFindings.push(...scanConditionalLogic(file, ruleBlockTitles));
+    allFindings.push(...scanActionImperatives(file, file.wsName));
+    allFindings.push(...scanConditionalLogic(file, ruleBlockTitles, file.wsName));
   }
 
   // Cat 3: Missing safeguards
@@ -640,7 +650,7 @@ export async function runDeterminismScan(): Promise<ScanResult> {
 
   return {
     scanTimestamp: new Date().toISOString(),
-    target: "~/.openclaw",
+    target: OC_HOME === join(homedir(), ".openclaw") ? "~/.openclaw" : "~/" + OC_HOME.slice(homedir().length + 1),
     workspacesScanned: workspaces.map((w) => w.name),
     filesScanned: allFiles.length,
     findings: deduped,
@@ -657,7 +667,7 @@ function severityRank(s: Severity): number {
 export function formatExport(scan: ScanResult): string {
   const lines: string[] = [];
 
-  lines.push("LobsterTank Determinism Audit");
+  lines.push("Poseidon Determinism Audit");
   lines.push(`Scanned: ${scan.scanTimestamp}`);
   lines.push(`Target: ${scan.target}`);
   lines.push(`Workspaces: ${scan.workspacesScanned.join(", ")}`);

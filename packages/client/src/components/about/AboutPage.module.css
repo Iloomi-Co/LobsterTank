@@ -1,0 +1,1008 @@
+.page {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  overflow-x: hidden;
+}
+
+/* ── Fade-in sections ─────────────────── */
+
+.fadeSection {
+  opacity: 0;
+  transform: translateY(32px);
+  transition: opacity 0.7s ease, transform 0.7s ease;
+}
+
+.fadeSectionVisible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ── Hero ──────────────────────────────── */
+
+.hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 80px 32px 64px;
+}
+
+.heroIcon {
+  color: var(--text-accent);
+  margin-bottom: 32px;
+  animation: heroFloat 4s ease-in-out infinite;
+}
+
+@keyframes heroFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+.heroTitle {
+  font-size: clamp(2.4rem, 5vw, 4rem);
+  font-weight: var(--font-weight-bold);
+  line-height: 1.1;
+  letter-spacing: -0.04em;
+  color: var(--text-primary);
+  max-width: 720px;
+}
+
+.heroAccent {
+  color: var(--text-accent);
+}
+
+.heroSub {
+  margin-top: 24px;
+  font-size: var(--font-size-lg);
+  color: var(--text-secondary);
+  max-width: 600px;
+  line-height: 1.6;
+}
+
+.heroCtas {
+  margin-top: 40px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.ctaPrimary {
+  padding: 14px 36px;
+  background: var(--text-primary);
+  color: var(--bg-primary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  border-radius: 999px;
+  border: none;
+  cursor: pointer;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  letter-spacing: -0.01em;
+}
+
+.ctaPrimary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+
+.heroLive {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.livePulse {
+  position: relative;
+  width: 10px;
+  height: 10px;
+  display: inline-block;
+}
+
+.liveDot {
+  position: absolute;
+  inset: 2px;
+  background: var(--green);
+  border-radius: 50%;
+}
+
+.liveRing {
+  position: absolute;
+  inset: 0;
+  border: 1.5px solid var(--green);
+  border-radius: 50%;
+  animation: liveRingPulse 2s ease-out infinite;
+}
+
+@keyframes liveRingPulse {
+  0% { transform: scale(1); opacity: 0.6; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+
+.heroLiveText {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.heroInstall {
+  margin-top: 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.installCode {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-accent);
+  background: var(--bg-tertiary);
+  padding: 12px 32px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-primary);
+  letter-spacing: 0;
+}
+
+.installNote {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+}
+
+/* ── Problem ──────────────────────────── */
+
+.problemSection {
+  padding: 80px 32px;
+  max-width: 960px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.sectionEyebrow {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--red);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 12px;
+}
+
+.problemHeading {
+  font-size: clamp(1.6rem, 3vw, 2.2rem);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+  max-width: 700px;
+}
+
+.problemSub {
+  margin-top: 16px;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  line-height: 1.7;
+  max-width: 620px;
+}
+
+.problemGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-top: 40px;
+}
+
+.problemCard {
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-lg);
+  padding: 28px;
+  border: 1px solid var(--border-primary);
+}
+
+.problemIcon {
+  margin-bottom: 16px;
+}
+
+.problemTitle {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.problemDesc {
+  margin-top: 8px;
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* ── Feature sections ─────────────────── */
+
+.featureSection {
+  padding: 80px 32px;
+  max-width: 960px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.featureLabel {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-accent);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 12px;
+}
+
+.featureHeading {
+  font-size: clamp(1.8rem, 3vw, 2.6rem);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+}
+
+.featureDesc {
+  margin-top: 16px;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  line-height: 1.7;
+  max-width: 640px;
+}
+
+.featureDesc code {
+  background: var(--bg-tertiary);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 0.9em;
+  color: var(--text-accent);
+}
+
+/* ── Terminal / Discovery demo ────────── */
+
+.discoveryDemo {
+  margin-top: 32px;
+}
+
+.terminalWindow {
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  border: 1px solid var(--border-primary);
+  background: #0c0c0e;
+}
+
+.terminalBar {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  background: #1a1a1e;
+  border-bottom: 1px solid #2a2a2f;
+}
+
+.terminalDots {
+  display: flex;
+  gap: 6px;
+}
+
+.terminalDots span {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.terminalDots span:first-child { background: #ff5f57; }
+.terminalDots span:nth-child(2) { background: #febc2e; }
+.terminalDots span:last-child { background: #28c840; }
+
+.terminalTitle {
+  margin-left: auto;
+  margin-right: auto;
+  font-size: 0.85rem;
+  color: #71717a;
+}
+
+.terminalBody {
+  padding: 20px 24px;
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  line-height: 1.8;
+  color: #e4e4e7;
+}
+
+.termLine {
+  white-space: nowrap;
+}
+
+.termPrompt {
+  color: var(--green);
+  margin-right: 8px;
+}
+
+.termMuted {
+  color: #71717a;
+}
+
+.termGreen {
+  color: var(--green);
+}
+
+/* ── Screenshot mock ──────────────────── */
+
+.screenshotFrame {
+  margin-top: 40px;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  border: 1px solid var(--border-primary);
+  background: #0c0c0e;
+}
+
+.screenshotMock {
+  color: #fafafa;
+}
+
+.mockTopBar {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  background: #1a1a1e;
+  border-bottom: 1px solid #2a2a2f;
+}
+
+.mockDots {
+  display: flex;
+  gap: 6px;
+}
+
+.mockDots span {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #3a3a3f;
+}
+
+.mockDots span:first-child { background: #ff5f57; }
+.mockDots span:nth-child(2) { background: #febc2e; }
+.mockDots span:last-child { background: #28c840; }
+
+.mockTitle {
+  margin-left: auto;
+  margin-right: auto;
+  font-size: 0.85rem;
+  color: #71717a;
+}
+
+.mockBody {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.mockStatsRow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.mockPill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: #27272a;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  color: #a1a1aa;
+}
+
+.mockDotGreen {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--green);
+}
+
+.mockRestartBtn {
+  margin-left: auto;
+  padding: 6px 14px;
+  background: #27272a;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  color: #a1a1aa;
+}
+
+.mockCardsRow {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.mockCard {
+  background: #18181b;
+  border-radius: 12px;
+  padding: 16px;
+  text-align: center;
+}
+
+.mockCardIcon {
+  margin-bottom: 8px;
+}
+
+.mockCardNumber {
+  font-size: 1.5rem;
+  font-weight: var(--font-weight-bold);
+  color: #fafafa;
+}
+
+.mockCardLabel {
+  font-size: 0.75rem;
+  color: #71717a;
+  margin-top: 4px;
+}
+
+.mockChartArea {
+  position: relative;
+  background: #18181b;
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.mockChart {
+  width: 100%;
+  height: 60px;
+}
+
+.mockChartLabel {
+  position: absolute;
+  bottom: 8px;
+  right: 16px;
+  font-size: 0.7rem;
+  color: #52525b;
+}
+
+/* ── Determinism audit categories ─────── */
+
+.auditCategories {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-top: 32px;
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.auditCatRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 18px 20px;
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-primary);
+  font-size: var(--font-size-xs);
+  line-height: 1.5;
+}
+
+.auditCatRow:last-child {
+  border-bottom: none;
+}
+
+.auditCatRow strong {
+  display: block;
+  color: var(--text-primary);
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: 2px;
+}
+
+.auditCatRow p {
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.auditCatRow code {
+  background: var(--bg-hover);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 0.85em;
+  color: var(--text-accent);
+}
+
+.auditCatNum {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-hover);
+  border-radius: 50%;
+  font-size: 0.8rem;
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-muted);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+/* ── Audit demo rows ──────────────────── */
+
+.auditDemo {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-top: 20px;
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.auditRow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 20px;
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-primary);
+  font-size: var(--font-size-xs);
+}
+
+.auditRow:last-child {
+  border-bottom: none;
+}
+
+.auditRow code {
+  background: var(--bg-hover);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 0.85em;
+  color: var(--text-accent);
+}
+
+.auditSeverityHigh,
+.auditSeverityMed,
+.auditSeverityLow {
+  font-size: 0.75rem;
+  font-weight: var(--font-weight-semibold);
+  padding: 2px 10px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  flex-shrink: 0;
+  min-width: 64px;
+  text-align: center;
+}
+
+.auditSeverityHigh {
+  background: var(--red-dim);
+  color: var(--red);
+}
+
+.auditSeverityMed {
+  background: var(--yellow-dim);
+  color: var(--yellow);
+}
+
+.auditSeverityLow {
+  background: var(--blue-dim);
+  color: var(--blue);
+}
+
+.auditFile {
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.auditMsg {
+  color: var(--text-secondary);
+}
+
+.auditFootnote {
+  margin-top: 12px;
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* ── Cost grid ────────────────────────── */
+
+.costGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-top: 32px;
+}
+
+.costCard {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+}
+
+.costCardHeader {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.costCardValue {
+  font-size: 2rem;
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+  margin-top: 8px;
+  letter-spacing: -0.03em;
+}
+
+.costCardDelta {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  margin-top: 8px;
+}
+
+.costDown {
+  color: var(--green);
+  font-weight: var(--font-weight-semibold);
+}
+
+.costUp {
+  color: var(--green);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* ── Scheduler demo ───────────────────── */
+
+.schedulerDemo {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 32px;
+}
+
+.schedulerCard {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.schedulerCardWarn {
+  border-color: rgba(255, 184, 0, 0.3);
+}
+
+.schedulerCardTop {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-primary);
+}
+
+.schedulerDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.schedulerDotActive {
+  background: var(--green);
+  box-shadow: 0 0 8px rgba(0, 224, 160, 0.4);
+}
+
+.schedulerDotWarn {
+  background: var(--yellow);
+  box-shadow: 0 0 8px rgba(255, 184, 0, 0.4);
+}
+
+.schedulerName {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.schedulerCron {
+  margin-left: auto;
+  font-size: var(--font-size-xs);
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  background: var(--bg-hover);
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+
+.schedulerCardBody {
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.schedulerMeta {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+}
+
+.schedulerStats {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.schedulerCheck {
+  font-size: var(--font-size-xs);
+  color: var(--green);
+}
+
+.schedulerRunning {
+  font-size: var(--font-size-xs);
+  color: var(--yellow);
+}
+
+.schedulerWarn {
+  font-size: var(--font-size-xs);
+  color: var(--yellow);
+  font-weight: var(--font-weight-medium);
+}
+
+.schedulerCost {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.schedulerTime {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+}
+
+/* ── Tweet carousel ───────────────────── */
+
+.tweetSection {
+  padding: 80px 0;
+  overflow: hidden;
+  width: 100vw;
+  margin-left: calc(-50vw + 50%);
+}
+
+.tweetSectionHeading {
+  font-size: clamp(1.6rem, 3vw, 2.2rem);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+  letter-spacing: -0.03em;
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.tweetCarousel {
+  overflow: hidden;
+  position: relative;
+  mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
+}
+
+.tweetTrack {
+  display: flex;
+  gap: 16px;
+  animation: scrollTweets 60s linear infinite;
+  width: max-content;
+}
+
+.tweetTrack:hover {
+  animation-play-state: paused;
+}
+
+@keyframes scrollTweets {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.tweetCard {
+  width: 380px;
+  flex-shrink: 0;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+}
+
+.tweetHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.tweetAvatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--bg-hover);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: var(--font-weight-bold);
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.tweetMeta {
+  display: flex;
+  flex-direction: column;
+}
+
+.tweetName {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.tweetHandle {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.tweetTime {
+  margin-left: auto;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.tweetText {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* ── Architecture ─────────────────────── */
+
+.archSection {
+  padding: 80px 32px;
+  max-width: 960px;
+  margin: 0 auto;
+  text-align: center;
+  width: 100%;
+}
+
+.archHeading {
+  font-size: clamp(1.6rem, 3vw, 2.2rem);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+  letter-spacing: -0.03em;
+}
+
+.archDesc {
+  margin-top: 16px;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  line-height: 1.7;
+  max-width: 560px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.archDiagram {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  margin-top: 48px;
+}
+
+.archNode {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  padding: 24px 28px;
+}
+
+.archNodeIcon {
+  color: var(--text-accent);
+}
+
+.archArrow {
+  flex-shrink: 0;
+}
+
+/* ── Bottom CTA ───────────────────────── */
+
+.ctaSection {
+  padding: 80px 32px 96px;
+  text-align: center;
+  max-width: 960px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.ctaHeading {
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+  letter-spacing: -0.04em;
+  line-height: 1.1;
+}
+
+.ctaDesc {
+  margin-top: 12px;
+  font-size: var(--font-size-md);
+  color: var(--text-secondary);
+}
+
+.ctaActions {
+  margin-top: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+}
+
+.installCodeSmall {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+  background: var(--bg-tertiary);
+  padding: 10px 20px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-primary);
+}
+
+/* ── Responsive ───────────────────────── */
+
+@media (max-width: 900px) {
+  .problemGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .costGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .mockCardsRow {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .archDiagram {
+    flex-direction: column;
+  }
+
+  .archArrow {
+    transform: rotate(90deg);
+  }
+
+  .heroCtas {
+    flex-direction: column;
+  }
+
+  .tweetCard {
+    width: 320px;
+  }
+
+  .schedulerCardBody {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+}
+
+@media (max-width: 600px) {
+  .costGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .mockStatsRow {
+    flex-wrap: wrap;
+  }
+
+  .ctaActions {
+    flex-direction: column;
+  }
+}

@@ -13,6 +13,7 @@ interface Finding {
   id: string;
   category: string;
   severity: "high" | "medium" | "low" | "info";
+  workspace: string | null;
   file: string | null;
   line: number | null;
   excerpt: string;
@@ -30,8 +31,12 @@ interface Finding {
 interface FindingsSectionProps {
   findings: Finding[];
   onDispatch: (finding: Finding) => void;
+  onDismiss: (id: string) => void;
   onDeepScan: (id: string) => void;
   deepScanning: boolean;
+  onFixConfigSync?: () => void;
+  onFixOcCrons?: () => void;
+  fixing?: string | null;
 }
 
 const SEVERITY_VARIANT: Record<string, "red" | "yellow" | "blue" | "muted"> = {
@@ -56,7 +61,7 @@ const CONFIDENCE_VARIANT: Record<string, "red" | "yellow" | "green" | "muted"> =
   low: "muted",
 };
 
-export function FindingsSection({ findings, onDispatch, onDeepScan, deepScanning }: FindingsSectionProps) {
+export function FindingsSection({ findings, onDispatch, onDismiss, onDeepScan, deepScanning, onFixConfigSync, onFixOcCrons, fixing }: FindingsSectionProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [filter, setFilter] = useState<string>("all");
 
@@ -172,7 +177,7 @@ export function FindingsSection({ findings, onDispatch, onDeepScan, deepScanning
                   )}
 
                   <div className={styles.findingActions}>
-                    {!f.llmReview && f.category !== "missing-safeguard" && (
+                    {!f.llmReview && f.category !== "missing-safeguard" && f.category !== "rogue-scheduling" && (
                       <button
                         className={styles.reviewBtn}
                         onClick={() => onDeepScan(f.id)}
@@ -181,16 +186,44 @@ export function FindingsSection({ findings, onDispatch, onDeepScan, deepScanning
                         {deepScanning ? "Reviewing..." : "Review (OC)"}
                       </button>
                     )}
-                    {f.category === "missing-safeguard" ? (
+
+                    {/* Actionable fix: Missing Safeguard → Run Config Sync */}
+                    {f.category === "missing-safeguard" && onFixConfigSync ? (
+                      <button
+                        className={styles.fixActionBtn}
+                        onClick={onFixConfigSync}
+                        disabled={fixing !== null}
+                      >
+                        {fixing === "configSync" ? "Syncing..." : "Fix: Run Config Sync"}
+                      </button>
+                    ) : f.category === "missing-safeguard" ? (
                       <span className={styles.configSyncHint}>Use Config Sync to fix</span>
-                    ) : (
+                    ) : null}
+
+                    {/* Actionable fix: Rogue Scheduling (OC crons) → Remove All */}
+                    {f.category === "rogue-scheduling" && f.excerpt.includes("OC internal crons") && onFixOcCrons ? (
+                      <button
+                        className={styles.fixActionBtn}
+                        onClick={onFixOcCrons}
+                        disabled={fixing !== null}
+                      >
+                        {fixing === "ocCrons" ? "Removing..." : "Fix: Remove All OC Crons"}
+                      </button>
+                    ) : f.category !== "missing-safeguard" ? (
                       <button
                         className={styles.dispatchBtn}
                         onClick={() => onDispatch(f)}
                       >
                         Dispatch Fix
                       </button>
-                    )}
+                    ) : null}
+
+                    <button
+                      className={styles.dismissBtn}
+                      onClick={() => onDismiss(f.id)}
+                    >
+                      Clear Warning
+                    </button>
                   </div>
                 </div>
               )}

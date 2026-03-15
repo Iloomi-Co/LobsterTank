@@ -155,7 +155,7 @@ determinismRoutes.post("/dispatch", async (req, res) => {
     await ensureGitRepo(OC_HOME);
     const snap = await snapshot(
       OC_HOME,
-      `LobsterTank: pre-dispatch snapshot for ${findingId ?? "fix"}`,
+      `Poseidon: pre-dispatch snapshot for ${findingId ?? "fix"}`,
     );
 
     await logAction(

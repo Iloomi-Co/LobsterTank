@@ -5,11 +5,43 @@ interface ApiResponse<T = unknown> {
   timestamp: string;
 }
 
-const BASE = "/api";
+/** Extract profile slug from current URL path (first segment like "openclaw" or "openclaw-iloomi") */
+export function getProfileSlug(): string {
+  const parts = window.location.pathname.split("/").filter(Boolean);
+  if (parts[0]?.startsWith("openclaw")) return parts[0];
+  return "openclaw";
+}
+
+/** Map profile name to URL slug */
+export function profileNameToSlug(name: string): string {
+  return name === "default" ? "openclaw" : `openclaw-${name}`;
+}
+
+/** Map URL slug to profile name */
+export function profileSlugToName(slug: string): string {
+  return slug === "openclaw" ? "default" : slug.replace(/^openclaw-/, "");
+}
+
+function getBase(): string {
+  return `/api/${getProfileSlug()}`;
+}
 
 async function request<T>(path: string, options?: RequestInit): Promise<ApiResponse<T>> {
   try {
-    const res = await fetch(`${BASE}${path}`, {
+    const res = await fetch(`${getBase()}${path}`, {
+      headers: { "Content-Type": "application/json" },
+      ...options,
+    });
+    return await res.json();
+  } catch (e: any) {
+    return { ok: false, error: e.message ?? "Network error", timestamp: new Date().toISOString() };
+  }
+}
+
+/** Make a request to a global (non-profile-scoped) API endpoint */
+async function globalRequest<T>(path: string, options?: RequestInit): Promise<ApiResponse<T>> {
+  try {
+    const res = await fetch(`/api${path}`, {
       headers: { "Content-Type": "application/json" },
       ...options,
     });
@@ -20,7 +52,7 @@ async function request<T>(path: string, options?: RequestInit): Promise<ApiRespo
 }
 
 export const api = {
-  ping: () => request<{ message: string }>("/ping"),
+  ping: () => globalRequest<{ message: string }>("/ping"),
   health: () => request<any>("/health"),
   processes: () => request<any[]>("/processes"),
   killProcess: (pid: number) =>
@@ -172,4 +204,17 @@ export const api = {
   // Step 6: Gateway
   gatewayRestart: () =>
     request<any>("/gateway/restart", { method: "POST" }),
+
+  // Memory
+  memory: () => request<any>("/memory"),
+  memoryFile: (agent: string, fileName: string) =>
+    request<{ content: string; chars: number; tokens: number }>(`/memory/${encodeURIComponent(agent)}/file/${encodeURIComponent(fileName)}`),
+  memoryQuery: (agent: string, message: string) =>
+    request<{ response: string; agent: string }>(`/memory/${encodeURIComponent(agent)}/query`, {
+      method: "POST",
+      body: JSON.stringify({ message }),
+    }),
+
+  // Profiles (global — not profile-scoped)
+  profiles: () => globalRequest<{ profiles: any[] }>("/profiles"),
 };

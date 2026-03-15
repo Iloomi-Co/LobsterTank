@@ -2,41 +2,66 @@
   grid-column: 1 / -1;
   display: flex;
   flex-direction: column;
-  gap: 22px;
+  gap: 32px;
 }
 
-.header {
+/* ===== Page heading + stats (matches Cost page) ===== */
+
+.pageHeading {
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-light);
+  color: var(--text-primary);
+  letter-spacing: -0.03em;
+}
+
+.statsRow {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 22px;
-  background: var(--bg-panel);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-panel);
 }
 
-.headerLeft {
+.pills {
   display: flex;
-  align-items: center;
-  gap: 16px;
+  align-items: flex-end;
+  gap: 24px;
 }
 
-.headerTitle {
-  font-size: var(--font-size-lg);
+.pillGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pillLabel {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-normal);
+  color: var(--text-secondary);
+  margin-left: 10px;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 18px;
+  border-radius: 999px;
+  font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
-  color: var(--text-primary);
+  white-space: nowrap;
 }
 
-.badges {
-  display: flex;
-  gap: 8px;
+.pillGreen {
+  background: #B4E33D;
+  color: #1a1a1a;
 }
 
-.headerActions {
-  display: flex;
-  gap: 12px;
-  align-items: center;
+.pillRed {
+  background: var(--red);
+  color: #ffffff;
+}
+
+.pillYellow {
+  background: var(--pill-yellow-bg);
+  color: var(--pill-yellow-text);
 }
 
 .scanBtn {
@@ -61,6 +86,9 @@
 }
 
 .actionBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
   padding: 7px 16px;
   background: var(--bg-tertiary);
   border: 1px solid var(--border-primary);
@@ -89,6 +117,71 @@
 
 .deepScanBtn:hover {
   opacity: 0.9;
+}
+
+/* ===== Tabs ===== */
+
+.tabBar {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.tab {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 24px;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.tab:hover {
+  color: var(--text-secondary);
+}
+
+.tabActive {
+  color: var(--text-primary);
+  border-bottom-color: var(--text-primary);
+}
+
+.tabBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  line-height: 1;
+}
+
+.tabBadgeGreen {
+  background: var(--green-dim);
+  color: var(--green);
+}
+
+.tabBadgeRed {
+  background: var(--red-dim);
+  color: var(--red);
+}
+
+.tabBadgeYellow {
+  background: var(--yellow-dim);
+  color: var(--yellow);
+}
+
+/* Scan-specific action bar */
+.scanActions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
 }
 
 .error {
@@ -146,6 +239,7 @@
   font-size: var(--font-size-xs);
   color: var(--text-muted);
   flex-wrap: wrap;
+  margin-top: 20px;
 }
 
 .clean {
@@ -157,4 +251,253 @@
   color: var(--green);
   font-size: var(--font-size-md);
   font-weight: 500;
+  margin-top: 20px;
+}
+
+/* ===== System Health section (agents + tasks cards) ===== */
+
+.systemHealth {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.carouselSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.rowHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0;
+}
+
+/* ── Scrollable card row ── */
+
+.scrollRow {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+
+.scrollRow::-webkit-scrollbar {
+  height: 6px;
+}
+
+.scrollRow::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollRow::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 3px;
+}
+
+.scrollCard {
+  flex: 0 0 calc((100% - 32px) / 3);
+  min-width: 280px;
+  padding: 20px 20px 18px;
+  background: var(--bg-panel-dark);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-panel);
+  scroll-snap-align: start;
+}
+
+.fixBtn {
+  padding: 6px 18px;
+  background: var(--green-dim);
+  border: 1px solid var(--green);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  color: var(--green);
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+}
+
+.fixBtn:hover {
+  opacity: 0.85;
+}
+
+.fixBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ===== Card detail dialog ===== */
+
+.dialogOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: dialogFadeIn 0.12s ease;
+}
+
+.dialog {
+  width: 380px;
+  max-width: calc(100vw - 48px);
+  background: #1c1c1e;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+  overflow: hidden;
+  animation: dialogSlideIn 0.15s ease;
+}
+
+.dialogBody {
+  padding: 28px 24px 20px;
+  text-align: center;
+}
+
+.dialogTitle {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.5);
+  letter-spacing: 0.02em;
+  margin-bottom: 16px;
+}
+
+.dialogPassIcon {
+  font-size: 40px;
+  margin-bottom: 10px;
+}
+
+.dialogPassLabel {
+  font-size: var(--font-size-xl);
+  font-weight: 600;
+  color: var(--green);
+  letter-spacing: -0.02em;
+}
+
+.dialogFailLabel {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: #ff453a;
+  margin-bottom: 16px;
+}
+
+.dialogIssues {
+  text-align: left;
+}
+
+.dialogIssueRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.dialogIssueDot {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #ff453a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.dialogIssueName {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: #ffffff;
+  flex: 1;
+}
+
+.dialogIssueDetail {
+  font-size: var(--font-size-xs);
+  color: rgba(255, 255, 255, 0.4);
+  margin-top: 1px;
+}
+
+/* Dialog button bar — macOS-style divider row */
+.dialogActions {
+  display: flex;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.dialogBtn {
+  flex: 1;
+  padding: 14px 0;
+  background: transparent;
+  border: none;
+  font-size: var(--font-size-sm);
+  font-weight: 400;
+  color: #0a84ff;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.dialogBtn:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.dialogBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.dialogBtnMuted {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.dialogBtnPrimary {
+  font-weight: 600;
+}
+
+.dialogBtnDivider {
+  width: 1px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.dialogSpinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid rgba(255, 255, 255, 0.12);
+  border-top-color: #0a84ff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  margin: 8px auto 14px;
+}
+
+.dialogResultIcon {
+  font-size: 40px;
+  margin-bottom: 10px;
+}
+
+.dialogResultLabel {
+  font-size: var(--font-size-md);
+  font-weight: 500;
+  color: #ffffff;
+}
+
+.dialogResultOk .dialogResultLabel {
+  color: var(--green);
+}
+
+.dialogResultError .dialogResultLabel {
+  color: #ff453a;
+}
+
+@keyframes dialogFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes dialogSlideIn {
+  from { opacity: 0; transform: scale(0.95) translateY(8px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
 }

@@ -34,13 +34,13 @@ configSyncRoutes.get("/check", async (_req, res) => {
 configSyncRoutes.post("/apply", async (_req, res) => {
   try {
     await ensureGitRepo(OC_HOME);
-    await snapshot(OC_HOME, `LobsterTank: pre-sync snapshot ${new Date().toISOString()}`);
+    await snapshot(OC_HOME, `Poseidon: pre-sync snapshot ${new Date().toISOString()}`);
     await logAction("CONFIG_SYNC_APPLY", "Applying canonical rules to AGENTS.md files");
 
     const syncScript = join(DEPLOY_SCRIPTS, "sync-rules.sh");
     const result = await safeExec("bash", [syncScript, "--apply", "--json"], { timeout: 15000 });
 
-    await snapshot(OC_HOME, "LobsterTank: synced AGENTS.md rules");
+    await snapshot(OC_HOME, "Poseidon: synced AGENTS.md rules");
 
     if (result.exitCode !== 0) {
       res.json({ ok: false, error: result.stderr || "Script failed", timestamp: new Date().toISOString() });

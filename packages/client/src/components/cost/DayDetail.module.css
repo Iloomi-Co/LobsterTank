@@ -140,9 +140,9 @@
 }
 
 .columnTitle {
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
-  color: var(--text-muted);
+  color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   margin-bottom: 14px;
@@ -157,42 +157,54 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-md);
   font-weight: var(--font-weight-medium);
   color: var(--text-primary);
   margin-bottom: 4px;
 }
 
 .agentCost {
-  color: var(--text-secondary);
+  color: var(--text-primary);
 }
 
 .sessionRow {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: var(--font-size-xs);
-  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
   padding-left: 16px;
   margin-bottom: 2px;
 }
 
 .sessionId {
   font-family: var(--font-mono, monospace);
-  opacity: 0.8;
+  color: #bbbbbb;
+}
+
+:global([data-theme="light"]) .sessionId {
+  color: #333333;
 }
 
 .sessionMeta {
   display: flex;
-  gap: 10px;
+  gap: 20px;
+}
+
+.sessionCalls {
+  color: #bbbbbb;
+}
+
+:global([data-theme="light"]) .sessionCalls {
+  color: #333333;
 }
 
 /* Model list */
 .modelRow {
   display: flex;
   align-items: center;
-  gap: 10px;
-  font-size: var(--font-size-sm);
+  gap: 20px;
+  font-size: var(--font-size-md);
   margin-bottom: 10px;
 }
 
@@ -205,7 +217,7 @@
 
 .modelName {
   flex: 1;
-  color: var(--text-secondary);
+  color: var(--text-primary);
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -219,10 +231,14 @@
 }
 
 .modelPct {
-  color: var(--text-muted);
-  font-size: var(--font-size-xs);
+  color: #bbbbbb;
+  font-size: var(--font-size-sm);
   min-width: 36px;
   text-align: right;
+}
+
+:global([data-theme="light"]) .modelPct {
+  color: #333333;
 }
 
 /* Model total */
@@ -230,9 +246,9 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-md);
   font-weight: var(--font-weight-medium);
-  color: var(--text-secondary);
+  color: var(--text-primary);
   padding-top: 10px;
   margin-top: 6px;
   border-top: 1px solid var(--border-subtle);

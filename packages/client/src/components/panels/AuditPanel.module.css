@@ -170,7 +170,7 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  margin-bottom: 20px;
+  margin-bottom: 14px;
 }
 
 .agentCardName {
@@ -188,7 +188,7 @@
 }
 
 .agentCardScore {
-  font-size: var(--font-size-2xl);
+  font-size: var(--font-size-xl);
   font-weight: var(--font-weight-medium);
   color: #ffffff;
   letter-spacing: -0.02em;
@@ -206,8 +206,8 @@
 .ruleItem {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 12px 0;
+  gap: 10px;
+  padding: 8px 0;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
@@ -216,8 +216,8 @@
 }
 
 .ruleIcon {
-  width: 36px;
-  height: 36px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -236,8 +236,8 @@
 }
 
 .ruleStatus {
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -250,7 +250,7 @@
 }
 
 .ruleStatusFail {
-  background: rgba(255, 255, 255, 0.1);
+  background: #e53935;
 }
 
 /* Exempt / n/a states */

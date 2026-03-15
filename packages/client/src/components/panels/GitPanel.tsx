@@ -116,7 +116,7 @@ export function GitPanel() {
       <ConfirmDialog
         open={revertConfirm}
         title="Revert Last Change"
-        message="This will revert the most recent commit in ~/.openclaw. This only undoes LobsterTank's own changes. Proceed?"
+        message="This will revert the most recent commit in ~/.openclaw. This only undoes Poseidon's own changes. Proceed?"
         onConfirm={handleRevert}
         onCancel={() => setRevertConfirm(false)}
         confirmLabel="Revert"

@@ -43,7 +43,7 @@ gitRoutes.post("/init", async (_req, res) => {
 gitRoutes.post("/snapshot", async (req, res) => {
   const { message } = req.body as { message?: string };
   try {
-    const msg = message ?? `LobsterTank: manual snapshot ${new Date().toISOString()}`;
+    const msg = message ?? `Poseidon: manual snapshot ${new Date().toISOString()}`;
     await logAction("GIT_SNAPSHOT", msg);
     const result = await snapshot(OC_HOME, msg);
     res.json({ ok: true, data: result, timestamp: new Date().toISOString() });

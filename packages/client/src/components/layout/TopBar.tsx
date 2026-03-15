@@ -1,25 +1,50 @@
 import { useCallback } from "react";
+import { getProfileSlug, profileNameToSlug } from "../../api/client.js";
 import styles from "./TopBar.module.css";
 
-export type ViewType = "dashboard" | "cost" | "scheduler" | "determinism";
+export type ViewType = "dashboard" | "cost" | "scheduler" | "determinism" | "memory" | "about";
 
-const VIEW_PATHS: Record<ViewType, string> = {
-  dashboard: "/",
+const VIEW_SUFFIXES: Record<ViewType, string> = {
+  dashboard: "",
   cost: "/cost",
   scheduler: "/scheduler",
   determinism: "/determinism",
+  memory: "/memory",
+  about: "/about",
 };
 
-const PATH_VIEWS: Record<string, ViewType> = Object.fromEntries(
-  Object.entries(VIEW_PATHS).map(([v, p]) => [p, v as ViewType])
-);
-
+/** Parse view and profile slug from a URL pathname like "/openclaw-iloomi/cost" */
 export function viewFromPath(pathname: string): ViewType {
-  return PATH_VIEWS[pathname] ?? "dashboard";
+  const parts = pathname.split("/").filter(Boolean);
+  // First segment is profile slug, rest is the view
+  const suffix = parts.length > 1 ? "/" + parts.slice(1).join("/") : "";
+  for (const [view, s] of Object.entries(VIEW_SUFFIXES)) {
+    if (suffix === s) return view as ViewType;
+  }
+  return "dashboard";
 }
 
-export function pathFromView(view: ViewType): string {
-  return VIEW_PATHS[view];
+/** Extract profile slug from pathname */
+export function profileFromPath(pathname: string): string {
+  const parts = pathname.split("/").filter(Boolean);
+  if (parts[0]?.startsWith("openclaw")) return parts[0];
+  return "openclaw";
+}
+
+/** Build a full path for a given view, using current profile slug */
+export function pathFromView(view: ViewType, profileSlug?: string): string {
+  const slug = profileSlug ?? getProfileSlug();
+  const suffix = VIEW_SUFFIXES[view];
+  return `/${slug}${suffix}`;
+}
+
+export interface ProfileInfo {
+  name: string;
+  slug: string;
+  path: string;
+  active: boolean;
+  gatewayPort: number;
+  hasConfig: boolean;
 }
 
 interface TopBarProps {
@@ -32,6 +57,9 @@ interface TopBarProps {
   onToggleTheme: () => void;
   activeView: ViewType;
   onViewChange: (view: ViewType) => void;
+  profiles: ProfileInfo[];
+  activeProfile: string;
+  onProfileChange: (slug: string) => void;
 }
 
 export function TopBar({
@@ -44,6 +72,9 @@ export function TopBar({
   onToggleTheme,
   activeView,
   onViewChange,
+  profiles,
+  activeProfile,
+  onProfileChange,
 }: TopBarProps) {
   const formatTime = useCallback((d: Date | null) => {
     if (!d) return "";
@@ -53,7 +84,24 @@ export function TopBar({
   return (
     <header className={styles.topBar}>
       <div className={styles.left}>
-        <span className={styles.logo}>LobsterTank</span>
+        <button className={styles.logoBtn} onClick={() => onViewChange("about")} title="About Poseidon">
+          <span className={styles.tridentEmoji}>🔱</span>
+          <span className={styles.logo}>Poseidon</span>
+        </button>
+        {profiles.length > 1 && (
+          <select
+            className={styles.profileSelect}
+            value={activeProfile}
+            onChange={(e) => onProfileChange(e.target.value)}
+            title="Switch OpenClaw profile"
+          >
+            {profiles.map((p) => (
+              <option key={p.slug} value={p.slug}>
+                {p.name === "default" ? "~/.openclaw" : `~/.openclaw-${p.name}`}
+              </option>
+            ))}
+          </select>
+        )}
       </div>
       <nav className={styles.nav}>
         <button
@@ -72,13 +120,19 @@ export function TopBar({
           className={`${styles.navTab} ${activeView === "scheduler" ? styles.navActive : ""}`}
           onClick={() => onViewChange("scheduler")}
         >
-          Task Scheduler
+          Tasks
         </button>
         <button
           className={`${styles.navTab} ${activeView === "determinism" ? styles.navActive : ""}`}
           onClick={() => onViewChange("determinism")}
         >
-          Determinism Audit
+          Audit
+        </button>
+        <button
+          className={`${styles.navTab} ${activeView === "memory" ? styles.navActive : ""}`}
+          onClick={() => onViewChange("memory")}
+        >
+          Memory
         </button>
       </nav>
       <div className={styles.right}>

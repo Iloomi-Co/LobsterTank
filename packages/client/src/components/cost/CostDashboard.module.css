@@ -351,8 +351,12 @@
 }
 
 .costRowLabel {
-  color: var(--text-secondary);
+  color: #bbbbbb;
   flex: 1;
+}
+
+:global([data-theme="light"]) .costRowLabel {
+  color: #333333;
 }
 
 .costRowValue {
@@ -363,10 +367,14 @@
 }
 
 .costRowPct {
-  color: var(--text-muted);
+  color: #bbbbbb;
   min-width: 60px;
   text-align: right;
   font-size: var(--font-size-xs);
+}
+
+:global([data-theme="light"]) .costRowPct {
+  color: #333333;
 }
 
 .costRowBar {
@@ -384,8 +392,12 @@
 
 .costRowTokens {
   font-size: var(--font-size-xs);
-  color: var(--text-muted);
+  color: #bbbbbb;
   padding-left: 24px;
+}
+
+:global([data-theme="light"]) .costRowTokens {
+  color: #333333;
 }
 
 /* ── Donut Chart ──────────────────────────── */
@@ -455,8 +467,12 @@
 }
 
 .donutLegendLabel {
-  color: var(--text-secondary);
+  color: #bbbbbb;
   flex: 1;
+}
+
+:global([data-theme="light"]) .donutLegendLabel {
+  color: #333333;
 }
 
 .donutLegendValue {
@@ -711,8 +727,12 @@
 }
 
 .barChartLabel {
-  color: var(--text-secondary);
+  color: #bbbbbb;
   flex: 1;
+}
+
+:global([data-theme="light"]) .barChartLabel {
+  color: #333333;
 }
 
 .barChartValue {
@@ -723,10 +743,14 @@
 }
 
 .barChartPct {
-  color: var(--text-muted);
+  color: #bbbbbb;
   min-width: 60px;
   text-align: right;
   font-size: var(--font-size-xs);
+}
+
+:global([data-theme="light"]) .barChartPct {
+  color: #333333;
 }
 
 .barChartTrack {

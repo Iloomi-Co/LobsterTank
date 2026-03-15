@@ -98,6 +98,6 @@ export async function ensureGitRepo(dir: string): Promise<boolean> {
     "**/.DS_Store",
   ]);
 
-  await snapshot(dir, "LobsterTank: baseline snapshot before config sync");
+  await snapshot(dir, "Poseidon: baseline snapshot before config sync");
   return true;
 }

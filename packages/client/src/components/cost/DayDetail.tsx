@@ -173,7 +173,7 @@ export function DayDetail({ date, onClose }: DayDetailProps) {
                   <span className={styles.sessionId}>{s.sessionId.slice(0, 7)}</span>
                   <span className={styles.sessionMeta}>
                     <span>{formatCost(s.cost)}</span>
-                    <span>{s.invocations} calls</span>
+                    <span className={styles.sessionCalls}>{s.invocations} calls</span>
                   </span>
                 </div>
               ))}

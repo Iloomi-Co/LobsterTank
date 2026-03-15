@@ -1,10 +1,10 @@
 {
-  "name": "@lobster-tank/server",
+  "name": "@poseidon/server",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "bin": {
-    "lobster-tank": "dist/cli.js"
+    "poseidon": "dist/cli.js"
   },
   "scripts": {
     "dev": "tsx watch src/index.ts",
